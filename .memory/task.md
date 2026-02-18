@@ -53,3 +53,11 @@
 ## Phase 8: UX Polish
 - [x] Assistant Widget Improvements (1.25x size + more movement)
 - [ ] Cinematic Transitions for Mode Switching
+
+## Phase 9: Persistence & Handover
+- [x] Backup all "brain" artifacts to `.memory/`
+- [x] Push entire codebase (minus large assets) to GitHub main
+
+## Phase 10: Deployment & Testing
+- [/] Connect GitHub Repo to Vercel (Auto-deploy enabled)
+- [ ] Configure Real-time Backend (required for cross-device sync on Vercel)
