@@ -59,5 +59,5 @@
 - [x] Push entire codebase (minus large assets) to GitHub main
 
 ## Phase 10: Deployment & Testing
-- [/] Connect GitHub Repo to Vercel (Auto-deploy enabled)
+- [x] Connect GitHub Repo to Vercel (Auto-deploy enabled/Fixed Build)
 - [ ] Configure Real-time Backend (required for cross-device sync on Vercel)
