@@ -3,9 +3,18 @@ import { io, Socket } from 'socket.io-client';
 class CommManager {
     private static instance: CommManager;
     private socket: Socket | null = null;
-    private url: string = 'http://localhost:3001'; // Default to local for V1/Dev
+    private channel: BroadcastChannel | null = null;
+    private url: string = 'http://localhost:3002';
+    private listeners: Record<string, ((...args: any[]) => void)[]> = {};
 
-    private constructor() { }
+    private constructor() {
+        // Initialize BroadcastChannel for local dev without backend
+        this.channel = new BroadcastChannel('screen_slaver_comms');
+        this.channel.onmessage = (event) => {
+            const { type, data } = event.data;
+            this.notifyListeners(type, data);
+        };
+    }
 
     public static getInstance(): CommManager {
         if (!CommManager.instance) {
@@ -15,66 +24,94 @@ class CommManager {
     }
 
     public connect(url?: string): Socket {
-        if (this.socket?.connected) return this.socket;
+        // Return mock socket or real one if backend exists
+        // For V1 local dev, we rely on BroadcastChannel
 
-        this.url = url || this.url;
+        // Simulate "connect" event locally
+        setTimeout(() => {
+            this.notifyListeners('connect', null);
+        }, 100);
 
-        this.socket = io(this.url, {
-            transports: ['websocket'],
-            reconnection: true,
-            reconnectionAttempts: 10,
-            reconnectionDelay: 1000,
-        });
-
-        this.setupListeners();
-        return this.socket;
+        return this.socket as any; // Mock return
     }
 
     public disconnect(): void {
-        if (this.socket) {
-            this.socket.disconnect();
-            this.socket = null;
-        }
-    }
-
-    public getSocket(): Socket | null {
-        return this.socket;
+        // this.channel?.close(); // Keep channel open for reload
     }
 
     public emit(event: string, data?: any): void {
-        if (this.socket) {
-            this.socket.emit(event, data);
-        } else {
-            console.warn('CommManager: Cannot emit, socket not connected.');
-        }
+        console.log(`[Comm] Emitting: ${event}`, data);
+
+        // 1. Broadcast to other tabs/windows
+        this.channel?.postMessage({ type: event, data });
+
+        // 2. Loopback to self (for testing on single screen)
+        // this.notifyListeners(event, data); 
+        // Note: Usually we don't loopback emitted events to avoid double-processing,
+        // but for "session_created" we might need to handle response.
+
+        // Simulating Backend Responses for specific events
+        this.simulateBackendResponse(event, data);
     }
 
     public on(event: string, callback: (...args: any[]) => void): void {
-        if (this.socket) {
-            this.socket.on(event, callback);
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
+        }
+        this.listeners[event].push(callback);
+    }
+
+    public off(event: string, callback?: (...args: any[]) => void): void {
+        if (!callback) {
+            delete this.listeners[event];
+        } else if (this.listeners[event]) {
+            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
         }
     }
 
-    public off(event: string): void {
-        if (this.socket) {
-            this.socket.off(event);
+    private notifyListeners(event: string, data: any) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(cb => cb(data));
         }
     }
 
-    private setupListeners(): void {
-        if (!this.socket) return;
+    // --- Backend Simulation Logic ---
+    private simulateBackendResponse(event: string, data: any) {
+        // Simulate Server Logic
+        if (event === 'create_session') {
+            const code = '29W95N'; // Fixed code for demo
+            setTimeout(() => {
+                this.notifyListeners('session_created', code);
+            }, 500);
+        }
 
-        this.socket.on('connect', () => {
-            console.log('CommManager: Connected to', this.url);
-        });
+        if (event === 'join_session') {
+            const { code, name, type } = data;
+            setTimeout(() => {
+                if (code === '29W95N') {
+                    this.notifyListeners('session_joined', { success: true, code });
+                    // Also broadcast to host that a device joined
+                    this.channel?.postMessage({
+                        type: 'device_joined',
+                        data: { id: crypto.randomUUID(), name, type, currentState: {} }
+                    });
+                } else {
+                    this.notifyListeners('session_joined', { success: false, message: 'Invalid Code' });
+                }
+            }, 500);
+        }
 
-        this.socket.on('disconnect', () => {
-            console.log('CommManager: Disconnected');
-        });
-
-        this.socket.on('connect_error', (err) => {
-            console.error('CommManager: Connection Error:', err.message);
-        });
+        if (event === 'update_device_state') {
+            // Echo back to all clients (including sender if needed, but usually sender updates optimistic)
+            // The BroadcastChannel above handles the "echo to others".
+            // But usually server validates and sends 'device_state_updated'.
+            this.channel?.postMessage({
+                type: 'device_state_updated',
+                data: data // { deviceId, state }
+            });
+            // Also notify self
+            this.notifyListeners('device_state_updated', data);
+        }
     }
 }
 

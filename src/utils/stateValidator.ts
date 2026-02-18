@@ -1,22 +1,31 @@
-import { DeviceState } from '../types';
+import { createDefaultDeviceState } from '../types';
 
-export const validateDeviceState = (state: Partial<DeviceState>): boolean => {
-    if (!state) return false;
-    // Basic validation - can be expanded based on rigorous schema checks
-    if (typeof state.battery !== 'undefined' && (state.battery < 0 || state.battery > 100)) return false;
-    if (typeof state.signal !== 'undefined' && (state.signal < 0 || state.signal > 5)) return false;
-    return true;
-};
+export const defaultDeviceState = createDefaultDeviceState();
 
-export const defaultDeviceState: DeviceState = {
-    time: '12:00',
-    battery: 100,
-    charging: false,
-    signal: 4,
-    carrier: 'SLAVER',
-    wifi: true,
-    currentApp: 'home',
-    wallpaper: 'default',
-    skin: 'modern-minimal',
-    language: 'en',
-};
+/**
+ * Generate a 6-character alphanumeric session code
+ */
+export function generateSessionCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+/**
+ * Format a timestamp for display
+ */
+export function formatTime(date: Date = new Date()): string {
+    return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+}
+
+/**
+ * Generic default device name
+ */
+export const DEFAULT_DEVICE_NAME = "New Device";

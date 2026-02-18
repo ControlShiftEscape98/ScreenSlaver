@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const SERVER_URL = "http://localhost:3001";
+const SERVER_URL = "http://localhost:3002";
 const socket = io(SERVER_URL, {
     transports: ["websocket"],
     reconnection: false
