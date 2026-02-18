@@ -380,12 +380,3 @@ const IconGridCross = () => (
         <path d="M3 12h18" />
     </svg>
 );
-
-const IconGridDot = () => (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-        <circle cx="8" cy="8" r="1.5" />
-        <circle cx="16" cy="8" r="1.5" />
-        <circle cx="8" cy="16" r="1.5" />
-        <circle cx="16" cy="16" r="1.5" />
-    </svg>
-);

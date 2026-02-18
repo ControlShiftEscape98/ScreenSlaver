@@ -36,7 +36,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     setDeviceType: (type) => set({ deviceType: type }),
 
     createSession: () => {
-        const socket = commManager.connect();
+        commManager.connect();
         commManager.emit('create_session');
 
         commManager.on('session_created', (code: string) => {
@@ -76,7 +76,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     },
 
     joinSession: (code, name) => {
-        const socket = commManager.connect();
+        commManager.connect();
         commManager.emit('join_session', { code, name, type: get().deviceType });
 
         commManager.on('session_joined', (response: { success: boolean; code?: string; message?: string }) => {
@@ -99,7 +99,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
         // CLIENT: Listen for state updates targeting ME
         commManager.on('device_state_updated', (data: { deviceId: string, state: Partial<DeviceState> }) => {
-            const currentId = get().deviceId;
             // In a real app, we check if data.deviceId === currentId.
             // For BroadcastChannel demo, likely the ID won't match perfectly unless we sync it.
             // BUT, since we generated ID locally in 'device_joined' broadcast (in commManager logic?),

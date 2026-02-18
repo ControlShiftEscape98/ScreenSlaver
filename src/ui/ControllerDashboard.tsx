@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
 import EditDevicePanel from './components/EditDevicePanel';
-import type { ScreenUnit, Cue, CueType } from '../types';
+import type { Cue, CueType } from '../types';
 import { createDefaultCue } from '../types';
 import { DEMO_SESSION_CODE, DEMO_DEVICE } from '../utils/demoData';
 import {

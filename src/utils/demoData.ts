@@ -1,6 +1,6 @@
-import { ScreenUnit, Cue, CueType } from '../types';
-import { createDefaultDeviceState, createDefaultCue } from '../types';
-import { generateSessionCode, DEFAULT_DEVICE_NAME } from '../utils/stateValidator';
+import { ScreenUnit } from '../types';
+import { createDefaultDeviceState } from '../types';
+import { generateSessionCode } from '../utils/stateValidator';
 
 export const DEMO_SESSION_CODE = generateSessionCode();
 

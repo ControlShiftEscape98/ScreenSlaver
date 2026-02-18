@@ -1,10 +1,9 @@
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 
 class CommManager {
     private static instance: CommManager;
     private socket: Socket | null = null;
     private channel: BroadcastChannel | null = null;
-    private url: string = 'http://localhost:3002';
     private listeners: Record<string, ((...args: any[]) => void)[]> = {};
 
     private constructor() {
@@ -23,7 +22,7 @@ class CommManager {
         return CommManager.instance;
     }
 
-    public connect(url?: string): Socket {
+    public connect(): Socket {
         // Return mock socket or real one if backend exists
         // For V1 local dev, we rely on BroadcastChannel
 
