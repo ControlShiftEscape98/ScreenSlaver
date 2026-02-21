@@ -8,7 +8,7 @@ import { Session } from '../types';
 export default function ProjectGateway() {
     const { setMode } = useModeStore();
     const { createSession, loadSessionFromDb } = useSessionStore();
-    const { user, signInWithGoogle, signOut } = useAuthStore();
+    const { user, isRedirecting, signInWithGoogle, signOut, getDisplayName, getAvatarUrl } = useAuthStore();
 
     const [viewingWorkspaces, setViewingWorkspaces] = useState(false);
     const [workspaces, setWorkspaces] = useState<Session[]>([]);
@@ -20,6 +20,11 @@ export default function ProjectGateway() {
     };
 
     const handleLoadWorkspace = async () => {
+        if (!user) {
+            // Prompt the user to sign in before loading workspaces
+            signInWithGoogle();
+            return;
+        }
         setViewingWorkspaces(true);
         setLoading(true);
         const fetched = await SyncEngine.fetchUserWorkspaces();
@@ -51,10 +56,21 @@ export default function ProjectGateway() {
 
             {/* Top Right Auth */}
             <div className="absolute top-6 right-6 z-50">
-                {user ? (
+                {isRedirecting ? (
+                    <div className="flex items-center gap-2 bg-surface-200/50 backdrop-blur-md px-4 py-2 border border-white/5 rounded-full shadow-lg">
+                        <div className="w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm font-medium text-neutral-400">Signing in…</span>
+                    </div>
+                ) : user ? (
                     <div className="flex items-center gap-3 bg-surface-200/50 backdrop-blur-md px-4 py-2 border border-white/5 rounded-full shadow-lg">
-                        <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-6 h-6 rounded-full border border-white/10" />
-                        <span className="text-sm font-semibold text-white">{user.user_metadata.full_name}</span>
+                        {getAvatarUrl() ? (
+                            <img src={getAvatarUrl()} alt="Avatar" className="w-6 h-6 rounded-full border border-white/10" />
+                        ) : (
+                            <div className="w-6 h-6 rounded-full bg-accent-500/20 border border-accent-500/30 flex items-center justify-center text-xs font-bold text-accent-500">
+                                {getDisplayName().charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                        <span className="text-sm font-semibold text-white">{getDisplayName()}</span>
                         <button onClick={signOut} className="text-xs text-neutral-400 hover:text-red-400 font-bold ml-2 transition-colors">
                             Logout
                         </button>
@@ -70,7 +86,7 @@ export default function ProjectGateway() {
                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
-                        Sign in
+                        Sign in with Google
                     </button>
                 )}
             </div>
@@ -168,11 +184,16 @@ export default function ProjectGateway() {
                             </svg>
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2">Load Workspace</h2>
-                        <p className="text-neutral-400 text-sm leading-relaxed mb-6">
+                        <p className="text-neutral-400 text-sm leading-relaxed mb-3">
                             Resume a previously saved session. Restores devices, cues, and screen states.
                         </p>
+                        {!user && (
+                            <p className="text-xs text-accent-500/80 font-medium mb-3">
+                                ⚠ Sign in required to access saved workspaces
+                            </p>
+                        )}
                         <div className="mt-auto px-6 py-2 bg-neutral-500/20 text-neutral-300 font-bold rounded-full text-sm group-hover:bg-neutral-700 transition-all">
-                            Browse Saves
+                            {user ? 'Browse Saves' : 'Sign in & Browse'}
                         </div>
                     </button>
                 </div>

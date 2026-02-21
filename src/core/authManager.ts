@@ -6,28 +6,42 @@ interface AuthState {
     user: User | null;
     session: Session | null;
     isLoading: boolean;
+    isRedirecting: boolean;
     initialize: () => void;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
+    /** Safe display name with fallback */
+    getDisplayName: () => string;
+    /** Safe avatar URL — returns empty string if none */
+    getAvatarUrl: () => string;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     session: null,
     isLoading: true,
+    isRedirecting: false,
 
     initialize: () => {
+        // Check if we're returning from an OAuth redirect
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const queryParams = new URLSearchParams(window.location.search);
+        const isReturningFromOAuth = hashParams.has('access_token') || queryParams.has('code');
+        if (isReturningFromOAuth) {
+            set({ isRedirecting: true });
+        }
+
         supabase.auth.getSession().then(({ data: { session } }) => {
-            set({ session, user: session?.user || null, isLoading: false });
+            set({ session, user: session?.user || null, isLoading: false, isRedirecting: false });
         });
 
         supabase.auth.onAuthStateChange((_event, session) => {
-            set({ session, user: session?.user || null, isLoading: false });
+            set({ session, user: session?.user || null, isLoading: false, isRedirecting: false });
         });
     },
 
     signInWithGoogle: async () => {
-        set({ isLoading: true });
+        set({ isRedirecting: true });
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -36,8 +50,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
         if (error) {
             console.error('Error logging in with Google:', error);
-            set({ isLoading: false });
+            set({ isRedirecting: false, isLoading: false });
         }
+        // Note: successful OAuth redirects away from the page, so no set() needed here
     },
 
     signOut: async () => {
@@ -47,5 +62,16 @@ export const useAuthStore = create<AuthState>((set) => ({
             console.error('Error signing out:', error);
         }
         set({ user: null, session: null, isLoading: false });
+    },
+
+    getDisplayName: () => {
+        const { user } = get();
+        if (!user) return 'Guest';
+        return user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+    },
+
+    getAvatarUrl: () => {
+        const { user } = get();
+        return user?.user_metadata?.avatar_url || '';
     }
 }));
