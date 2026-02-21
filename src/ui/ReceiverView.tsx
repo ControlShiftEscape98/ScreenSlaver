@@ -239,7 +239,7 @@ export default function ReceiverView() {
 
     // Demo Button
                     <button
-                        onClick={() => setDeviceTypeState('phone')} // Example usage or just keeping the setter
+                        onClick={() => { setDeviceTypeState('phone'); setIsDemoMode(true); }}
                         className="w-full py-3 bg-surface-200 text-neutral-300 font-bold rounded-xl hover:bg-surface-100 hover:text-white border border-white/5 transition-all"
                     >
                         Enter Offline Demo Mode

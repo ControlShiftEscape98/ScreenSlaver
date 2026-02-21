@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
 import EditDevicePanel from './components/EditDevicePanel';
@@ -39,12 +39,32 @@ const CUE_LABELS: Record<CueType, string> = {
 
 export default function ControllerDashboard() {
     const { setMode, dashboardView, setDashboardView } = useModeStore();
-    const { devices: sessionDevices, updateDeviceState } = useSessionStore();
+    const { devices: sessionDevices, updateDeviceState, addDevice, createSession } = useSessionStore();
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
     const [cueStack, setCueStack] = useState<Cue[]>([]);
-    const [sceneName] = useState('Sc. 1 Ext. Night - School Bleachers');
+    const [sceneName, setSceneName] = useState('Sc. 1 Ext. Night - School Bleachers');
     const [showAddCue, setShowAddCue] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Add Device modal state
+    const [showAddDevice, setShowAddDevice] = useState(false);
+    const [newDeviceName, setNewDeviceName] = useState('');
+    const [newDeviceType, setNewDeviceType] = useState<'phone' | 'tablet' | 'tv' | 'monitor'>('phone');
+
+    // Scene editing state
+    const [editingScene, setEditingScene] = useState(false);
+
+    // Identify flash state
+    const [identifyingDeviceId, setIdentifyingDeviceId] = useState<string | null>(null);
+
+    // Auto-create session on mount
+    useEffect(() => {
+        createSession();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Add Cue form state
     const [newCueName, setNewCueName] = useState('');
@@ -85,7 +105,13 @@ export default function ControllerDashboard() {
     };
 
     // Sync session devices to local display if needed, or just use sessionDevices
-    const displayDevices = sessionDevices.length > 0 ? sessionDevices : [DEMO_DEVICE];
+    const allDevices = sessionDevices.length > 0 ? sessionDevices : [DEMO_DEVICE];
+    const displayDevices = searchQuery.trim()
+        ? allDevices.filter(d =>
+            d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.type.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : allDevices;
 
     const selectedDevice = displayDevices.find(d => d.id === selectedDeviceId);
 
@@ -133,12 +159,35 @@ export default function ControllerDashboard() {
                         Reset All
                     </button>
 
-                    <button className="btn-ghost p-2" onClick={() => setShowSettings(!showSettings)}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                        </svg>
-                    </button>
+                    <div className="relative">
+                        <button className="btn-ghost p-2" onClick={() => setShowSettings(!showSettings)}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </button>
+                        {showSettings && (
+                            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-200 border border-white/10 rounded-xl shadow-2xl p-4 z-50 animate-float-in">
+                                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Session Settings</h4>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between p-3 bg-surface-100 rounded-lg border border-white/5">
+                                        <span className="text-sm text-neutral-300">Session Code</span>
+                                        <span className="text-sm font-mono font-bold text-accent-500">{DEMO_SESSION_CODE}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-surface-100 rounded-lg border border-white/5">
+                                        <span className="text-sm text-neutral-300">Connected Devices</span>
+                                        <span className="text-sm font-bold text-white">{sessionDevices.length}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => { setShowSettings(false); setMode('home'); }}
+                                        className="w-full py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors"
+                                    >
+                                        Leave Session
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <button className="btn-ghost p-2 text-neutral-400 hover:text-white" onClick={() => setMode('home')}>
                         <IconCueHome className="w-5 h-5" />
                     </button>
@@ -147,16 +196,31 @@ export default function ControllerDashboard() {
 
             {/* ─── Scene Bar ─────────────────────────────── */}
             <div className="flex items-center gap-3 px-6 py-3 bg-surface-300 border-b border-white/5 shadow-sm relative z-10">
-                <button
-                    onClick={() => { /* TODO: Open Scene Edit Logic */ }}
-                    className="flex items-center gap-3 px-4 py-2 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group"
-                >
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest group-hover:text-accent-500 transition-colors">Current Scene</span>
-                    <span className="text-sm font-semibold text-white border-l border-white/10 pl-3">{sceneName}</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-600 group-hover:text-accent-500 ml-1">
-                        <path d="M2 4l4 4 4-4" />
-                    </svg>
-                </button>
+                {editingScene ? (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-surface-100 border border-accent-500/50 rounded-lg">
+                        <span className="text-[10px] font-bold text-accent-500 uppercase tracking-widest">Current Scene</span>
+                        <input
+                            type="text"
+                            value={sceneName}
+                            onChange={e => setSceneName(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingScene(false); }}
+                            onBlur={() => setEditingScene(false)}
+                            className="bg-transparent text-sm font-semibold text-white outline-none border-l border-white/10 pl-3 flex-1"
+                            autoFocus
+                        />
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => setEditingScene(true)}
+                        className="flex items-center gap-3 px-4 py-2 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group"
+                    >
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest group-hover:text-accent-500 transition-colors">Current Scene</span>
+                        <span className="text-sm font-semibold text-white border-l border-white/10 pl-3">{sceneName}</span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-600 group-hover:text-accent-500 ml-1">
+                            <path d="M2 4l4 4 4-4" />
+                        </svg>
+                    </button>
+                )}
 
                 {/* Dashboard View Toggle */}
                 <div className="ml-auto flex items-center gap-1 bg-surface-100 rounded-lg p-1 border border-white/5 shadow-inner">
@@ -194,10 +258,12 @@ export default function ControllerDashboard() {
                                     <input
                                         type="text"
                                         placeholder="Search devices..."
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
                                         className="input-field pl-10 py-2 text-sm w-full shadow-inner"
                                     />
                                 </div>
-                                <button className="btn-accent text-xs flex items-center gap-2">
+                                <button className="btn-accent text-xs flex items-center gap-2" onClick={() => setShowAddDevice(true)}>
                                     <span>+</span> Add Device
                                 </button>
                             </div>
@@ -211,7 +277,7 @@ export default function ControllerDashboard() {
                                                 device.type === 'tv' ? IconDeviceTV : IconDeviceMonitor;
 
                                         return (
-                                            <div key={device.id} className="device-card group relative overflow-hidden bg-surface-200 border border-white/5 hover:border-accent-500/30 transition-all rounded-xl p-0">
+                                            <div key={device.id} className={`device-card group relative overflow-hidden bg-surface-200 border transition-all rounded-xl p-0 ${identifyingDeviceId === device.id ? 'border-accent-500 shadow-glow-accent ring-2 ring-accent-500/50 animate-pulse' : 'border-white/5 hover:border-accent-500/30'}`}>
                                                 <div className="p-4 relative z-10">
                                                     <div className="flex justify-between items-start mb-3">
                                                         <div className="flex items-center gap-3">
@@ -241,7 +307,12 @@ export default function ControllerDashboard() {
                                                 </div>
                                                 {/* Hover Actions */}
                                                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20">
-                                                    <button className="btn-accent text-xs px-4 py-2 rounded-lg" onClick={() => updateDeviceState(device.id, { signal: 4 })}>Identify</button>
+                                                    <button className={`btn-accent text-xs px-4 py-2 rounded-lg ${identifyingDeviceId === device.id ? 'ring-2 ring-white' : ''}`} onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIdentifyingDeviceId(device.id);
+                                                        updateDeviceState(device.id, { signal: 4 });
+                                                        setTimeout(() => setIdentifyingDeviceId(null), 1500);
+                                                    }}>Identify</button>
                                                     <button
                                                         className="bg-surface-100 hover:bg-white/10 text-white text-xs px-4 py-2 rounded-lg border border-white/10"
                                                         onClick={() => setSelectedDeviceId(device.id)}
@@ -494,6 +565,58 @@ export default function ControllerDashboard() {
                                 className="w-full py-3 bg-white text-surface-900 font-bold rounded-xl hover:bg-neutral-200 active:scale-[0.98] transition-all"
                             >
                                 Create Cue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Add Device Modal ──────────────────────── */}
+            {showAddDevice && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowAddDevice(false)}>
+                    <div className="glass-panel-elevated p-0 w-full max-w-md overflow-hidden animate-scale-in shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-surface-100 border-b border-white/5 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-white">Add Device</h3>
+                            <button onClick={() => setShowAddDevice(false)} className="text-neutral-500 hover:text-white">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Device Name</label>
+                            <input
+                                type="text"
+                                value={newDeviceName}
+                                onChange={e => setNewDeviceName(e.target.value)}
+                                placeholder="e.g., Hero Phone B"
+                                className="input-field mb-4 w-full"
+                                autoFocus
+                            />
+
+                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Device Type</label>
+                            <div className="grid grid-cols-4 gap-2 mb-6">
+                                {(['phone', 'tablet', 'monitor', 'tv'] as const).map(t => (
+                                    <button
+                                        key={t}
+                                        onClick={() => setNewDeviceType(t)}
+                                        className={`py-2 rounded-lg text-xs font-bold border transition-all ${newDeviceType === t ? 'border-accent-500 bg-accent-500 text-white' : 'border-white/5 bg-surface-200 text-neutral-400 hover:text-white'}`}
+                                    >
+                                        {t.toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    if (newDeviceName.trim()) {
+                                        addDevice(newDeviceName.trim(), newDeviceType);
+                                        setNewDeviceName('');
+                                        setShowAddDevice(false);
+                                    }
+                                }}
+                                disabled={!newDeviceName.trim()}
+                                className="w-full py-3 bg-white text-surface-900 font-bold rounded-xl hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+                            >
+                                Add Device
                             </button>
                         </div>
                     </div>

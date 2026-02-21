@@ -44,6 +44,9 @@ export default function QuickTools() {
     const [markerColor, setMarkerColor] = useState<MarkerColor>('white');
     const [showGridSettings, setShowGridSettings] = useState(false);
 
+    // Custom Image state
+    const [customImage, setCustomImage] = useState<string | null>(null);
+
     // --- Screen Lock Logic (Triple Tap) ---
     useEffect(() => {
         if (!isLocked) {
@@ -147,8 +150,45 @@ export default function QuickTools() {
                 );
             case 'custom-image':
                 return (
-                    <div className="w-full h-full bg-black flex items-center justify-center text-neutral-500">
-                        Drag & Drop Image (Placeholder)
+                    <div
+                        className="w-full h-full bg-black flex items-center justify-center relative"
+                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const file = e.dataTransfer.files[0];
+                            if (file && file.type.startsWith('image/')) {
+                                const reader = new FileReader();
+                                reader.onload = ev => setCustomImage(ev.target?.result as string);
+                                reader.readAsDataURL(file);
+                            }
+                        }}
+                    >
+                        {customImage ? (
+                            <img src={customImage} alt="Custom" className="w-full h-full object-contain" />
+                        ) : (
+                            <label className="cursor-pointer flex flex-col items-center gap-4 p-10 border-2 border-dashed border-white/20 rounded-2xl hover:border-accent-500/50 transition-colors">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-500">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                                <span className="text-neutral-400 text-sm font-medium">Click to select or drag & drop an image</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onload = ev => setCustomImage(ev.target?.result as string);
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                />
+                            </label>
+                        )}
                     </div>
                 );
             default:

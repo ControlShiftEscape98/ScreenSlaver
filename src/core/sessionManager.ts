@@ -22,6 +22,9 @@ interface SessionState {
 
     // Controller Action to update a device's state
     updateDeviceState: (deviceId: string, updates: Partial<DeviceState>) => void;
+
+    // Add a new device (from the "+ Add Device" button)
+    addDevice: (name: string, type: 'phone' | 'tablet' | 'tv' | 'monitor', group?: string) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -134,5 +137,20 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
         // Broadcast to network
         commManager.emit('update_device_state', { deviceId, state: updates });
-    }
+    },
+
+    addDevice: (name, type, group) => {
+        const newDevice: ScreenUnit = {
+            id: crypto.randomUUID(),
+            name,
+            type,
+            group: group || 'No Group',
+            isFavorite: false,
+            isHero: false,
+            isOnline: true,
+            baseState: defaultDeviceState,
+            currentState: { ...defaultDeviceState },
+        };
+        set((state) => ({ devices: [...state.devices, newDevice] }));
+    },
 }));
