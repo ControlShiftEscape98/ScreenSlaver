@@ -21,7 +21,7 @@ interface SessionState {
 
     // Actions
     createSession: () => Promise<void>;
-    joinSession: (code: string, name: string) => void;
+    joinSession: (code: string, name: string) => Promise<void>;
     leaveSession: () => void;
     setDeviceType: (type: 'phone' | 'tablet' | 'tv' | 'monitor' | 'laptop' | 'other') => void;
 
@@ -87,9 +87,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                             };
 
                             if (existing) {
-                                return { devices: state.devices.map(d => d.id === dbDevice.id ? mappedDevice : d) };
+                                return {
+                                    devices: state.devices.map(d => d.id === dbDevice.id ? mappedDevice : d),
+                                    ...(state.deviceId === mappedDevice.id ? { myDeviceState: mappedDevice.currentState } : {})
+                                };
                             } else {
-                                return { devices: [...state.devices, mappedDevice] };
+                                return {
+                                    devices: [...state.devices, mappedDevice],
+                                    ...(state.deviceId === mappedDevice.id ? { myDeviceState: mappedDevice.currentState } : {})
+                                };
                             }
                         } else if (payload.eventType === 'DELETE') {
                             return { devices: state.devices.filter(d => d.id !== payload.old.id) };
@@ -200,28 +206,53 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         });
     },
 
-    joinSession: (code, name) => {
-        commManager.connect();
-        commManager.emit('join_session', { code, name, type: get().deviceType });
+    joinSession: async (code, name) => {
+        const session = await SyncEngine.getSessionByCode(code);
 
-        commManager.on('session_joined', (response: { success: boolean; code?: string; message?: string }) => {
-            if (response.success) {
-                const myId = 'client-' + Math.random().toString(36).substring(2, 9);
-                set({
-                    sessionCode: response.code!,
-                    role: 'client',
-                    connected: true,
-                    deviceId: myId,
-                    myDeviceState: defaultDeviceState
-                });
-                console.log('Joined session:', response.code);
-            } else {
-                console.error('Failed to join:', response.message);
-                commManager.disconnect();
-            }
+        if (!session) {
+            console.error('Failed to join: Invalid code or no session found');
+            return;
+        }
+
+        const myId = 'client-' + Math.random().toString(36).substring(2, 9);
+        const myDeviceType = get().deviceType;
+
+        const newDevice: ScreenUnit = {
+            id: myId,
+            name: name,
+            type: myDeviceType,
+            group: 'No Group',
+            isFavorite: false,
+            isHero: false,
+            isOnline: true,
+            baseState: defaultDeviceState,
+            currentState: defaultDeviceState
+        };
+
+        await SyncEngine.upsertDevice(session.id, newDevice);
+
+        set({
+            sessionId: session.id,
+            sessionCode: session.code,
+            sessionName: session.name,
+            devices: session.devices,
+            cueStack: session.cueStack,
+            role: 'client',
+            connected: true,
+            deviceId: myId,
+            myDeviceState: defaultDeviceState,
+            syncEnabled: true
         });
 
-        // CLIENT: Listen for state updates targeting ME
+        console.log('Joined session:', session.code);
+
+        get().setupSyncSubscription();
+
+        // Local fallback broadcast comms setup
+        commManager.connect();
+        commManager.emit('join_session', { code, name, type: myDeviceType });
+
+        // CLIENT: Listen for state updates targeting ME from local network
         commManager.on('device_state_updated', (data: { deviceId: string, state: Partial<DeviceState> }) => {
             set((store) => ({
                 myDeviceState: store.myDeviceState

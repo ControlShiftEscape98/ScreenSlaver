@@ -14,7 +14,7 @@ type SkinTheme = 'ios' | 'android';
 
 export default function ReceiverView() {
     const { setMode } = useModeStore();
-    const { connected, joinSession, myDeviceState } = useSessionStore();
+    const { connected, joinSession, myDeviceState, role } = useSessionStore();
 
     // Local state for demo/prop functionality
     const [deviceName, setDeviceName] = useState('');
@@ -128,8 +128,8 @@ export default function ReceiverView() {
         }
     };
 
-    // If connected OR in demo mode, show prop interface
-    if (connected || isDemoMode) {
+    // If connected as a client OR in demo mode, show prop interface
+    if ((connected && role === 'client') || isDemoMode) {
         return (
             <div className="h-full w-full relative overflow-hidden bg-black select-none" onClick={handleScreenTap}>
 

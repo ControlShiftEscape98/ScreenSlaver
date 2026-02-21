@@ -63,6 +63,21 @@ export const SyncEngine = {
         }));
     },
 
+    async getSessionByCode(code: string): Promise<Session | null> {
+        const { data: sessionData, error } = await supabase
+            .from('sessions')
+            .select('*')
+            .eq('code', code.toUpperCase())
+            .single();
+
+        if (error || !sessionData) {
+            console.warn('[SyncEngine] Session not found by code:', error);
+            return null;
+        }
+
+        return this.loadSession(sessionData.id);
+    },
+
     async loadSession(sessionId: string): Promise<Session | null> {
         // Fetch session
         const { data: sessionData, error: sessionError } = await supabase
