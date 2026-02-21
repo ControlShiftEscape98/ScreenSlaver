@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logoUrl from '../assets/logo.png';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
 import { useSceneStore } from '../core/sceneManager';
+import { SyncEngine } from '../core/syncEngine';
 import EditDevicePanel from './components/EditDevicePanel';
-import type { Cue, CueType } from '../types';
+import type { Cue, CueType, Session } from '../types';
 import { createDefaultCue } from '../types';
 import { DEMO_SESSION_CODE, DEMO_DEVICE } from '../utils/demoData';
 import {
@@ -49,6 +50,46 @@ export default function ControllerDashboard() {
     const [showAddCue, setShowAddCue] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showCueStack, setShowCueStack] = useState(true);
+
+    const [savedWorkspaces, setSavedWorkspaces] = useState<Session[]>([]);
+    const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
+
+    useEffect(() => {
+        if (showSettings) {
+            loadWorkspaces();
+        }
+    }, [showSettings]);
+
+    const loadWorkspaces = async () => {
+        setLoadingWorkspaces(true);
+        try {
+            const workspaces = await SyncEngine.fetchUserWorkspaces();
+            setSavedWorkspaces(workspaces);
+        } catch (error) {
+            console.error("Failed to load workspaces:", error);
+        } finally {
+            setLoadingWorkspaces(false);
+        }
+    };
+
+    const handleSaveWorkspace = async () => {
+        const store = useSessionStore.getState();
+        if (!store.sessionId) return;
+
+        await SyncEngine.saveSession({
+            id: store.sessionId,
+            code: store.sessionCode || '000000',
+            name: store.sessionName || 'Untitled Workspace',
+            hostId: '',
+            devices: store.devices,
+            cueStack: store.cueStack,
+            presets: [],
+            createdAt: new Date().toISOString()
+        });
+        setShowSettings(false);
+        // Could add a toast notification here
+        alert('Workspace saved manually. (Sync is also automatic!)');
+    };
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -277,7 +318,7 @@ export default function ControllerDashboard() {
                                         <span className="text-sm font-bold text-white">{sessionDevices.length}</span>
                                     </div>
                                     <button
-                                        onClick={() => { handleSaveScene(); setShowSettings(false); }}
+                                        onClick={handleSaveWorkspace}
                                         className="w-full py-2.5 bg-accent-500/10 text-accent-400 border border-accent-500/20 rounded-lg text-xs font-bold hover:bg-accent-500/20 transition-colors gap-2 flex items-center justify-center"
                                     >
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
@@ -287,17 +328,33 @@ export default function ControllerDashboard() {
 
                                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Saved Workspaces</h4>
                                 <div className="space-y-2 mb-4">
-                                    <button className="w-full text-left p-3 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group">
-                                        <p className="text-sm font-bold text-white group-hover:text-accent-500 transition-colors">Sc. 1 Ext. Night</p>
-                                        <p className="text-[10px] text-neutral-500">2 Devices • 5 Cues</p>
-                                    </button>
-                                    <button className="w-full text-left p-3 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group">
-                                        <p className="text-sm font-bold text-white group-hover:text-accent-500 transition-colors">Sc. 4 Int. Day</p>
-                                        <p className="text-[10px] text-neutral-500">1 Device • 2 Cues</p>
-                                    </button>
-                                    <button className="w-full py-2 text-xs font-bold text-neutral-500 hover:text-white transition-colors">
-                                        View All Workspaces...
-                                    </button>
+                                    {loadingWorkspaces ? (
+                                        <p className="text-[11px] text-neutral-500 text-center py-2 animate-pulse">Loading workspaces...</p>
+                                    ) : savedWorkspaces.length > 0 ? (
+                                        savedWorkspaces.slice(0, 3).map(ws => (
+                                            <button
+                                                key={ws.id}
+                                                onClick={() => {
+                                                    setShowSettings(false);
+                                                    useSessionStore.getState().loadSessionFromDb(ws.id);
+                                                }}
+                                                className="w-full text-left p-3 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group"
+                                            >
+                                                <p className="text-sm font-bold text-white group-hover:text-accent-500 transition-colors">{ws.name}</p>
+                                                <p className="text-[10px] text-neutral-500">{ws.devices?.length || 0} Devices • {ws.cueStack?.length || 0} Cues</p>
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <p className="text-[11px] text-neutral-500 text-center py-2">No saved workspaces.</p>
+                                    )}
+                                    {savedWorkspaces.length > 3 && (
+                                        <button
+                                            onClick={() => { setShowSettings(false); setMode('home'); }}
+                                            className="w-full py-2 text-xs font-bold text-neutral-500 hover:text-white transition-colors"
+                                        >
+                                            View All Workspaces...
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="border-t border-white/5 pt-4">
