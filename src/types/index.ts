@@ -22,6 +22,8 @@ export interface DeviceState {
     skin: string;             // Visual skin identifier
     language: string;
     screenLocked: boolean;    // Controller lock — prevents touch on receiver
+    displayTool: QuickToolType | null;        // Quick tool pushed from controller
+    displayToolGrid: GridOverlayType | null;  // Grid overlay on top of display tool
 }
 
 export interface ScreenUnit {
@@ -120,15 +122,26 @@ export interface Preset {
 // ─── Quick Tool Types ────────────────────────────────
 
 export type QuickToolType =
-    | 'chroma-green'
-    | 'chroma-blue'
-    | 'gray-18'
-    | 'gray-50'
+    | 'screen-green'
+    | 'screen-blue'
+    | 'screen-gray-18'
+    | 'screen-gray-50'
     | 'black'
     | 'white'
     | 'color-chart'
+    | 'color-chart-chromadumonde'
+    | 'color-chart-colorchecker'
+    | 'grayscale-wedge'
     | 'calibration-grid'
+    | 'smpte-bars'
     | 'custom-image';
+
+export type GridOverlayType =
+    | 'thirds'
+    | 'golden-ratio'
+    | 'golden-spiral'
+    | 'crosshair'
+    | null;
 
 export interface QuickToolConfig {
     type: QuickToolType;
@@ -138,6 +151,7 @@ export interface QuickToolConfig {
     fullscreen: boolean;
     screenLocked: boolean;   // Triple-tap lock state
     imageUrl?: string;       // For custom-image type
+    gridOverlay?: GridOverlayType;
 }
 
 // ─── App State Types ─────────────────────────────────
@@ -151,6 +165,16 @@ export interface AppState {
     dashboardView: DashboardView;
     activeDeviceId: string | null;
     editDevicePanelOpen: boolean;
+}
+
+// ─── Saved Scene Types ───────────────────────────────
+
+export interface SavedScene {
+    id: string;
+    name: string;
+    devices: ScreenUnit[];
+    cueStack: Cue[];
+    savedAt: string;         // ISO timestamp
 }
 
 // ─── Default Factories ───────────────────────────────
@@ -169,6 +193,8 @@ export const createDefaultDeviceState = (): DeviceState => ({
     skin: 'ios',
     language: 'en',
     screenLocked: false,
+    displayTool: null,
+    displayToolGrid: null,
 });
 
 export const createDefaultCue = (overrides?: Partial<Cue>): Cue => ({

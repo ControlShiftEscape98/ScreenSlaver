@@ -1,27 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useModeStore } from '../core/modeManager';
+import type { QuickToolType, GridOverlayType } from '../types';
+import { QuickToolRenderer, CHROMA_GREEN, CHROMA_BLUE, GRAY_18, GRAY_50, PURE_BLACK, PURE_WHITE } from './components/QuickToolRenderer';
 
-// Industry Standard Colors (Boosted Saturation for User Preference)
-const CHROMA_GREEN = '#00E34F'; // "Super Bright" Digital Green
-const CHROMA_BLUE = '#1050FF';  // Vibrant Chroma Blue
-const GRAY_18 = '#333333';      // Visually Darker Gray (18% Linear approx)
-const GRAY_50 = '#909090';      // Visually Lighter Middle Gray
-
-// Color Chart Data (Macbeth-ish approximation)
-const COLOR_CHART = [
-    ['#735244', '#c29682', '#627a9d', '#576c43', '#8580b1', '#67bdaa'], // Row 1
-    ['#d67e2c', '#505ba6', '#c15a63', '#5e3c6c', '#9dbc40', '#e0a32e'], // Row 2
-    ['#383d96', '#469449', '#af363c', '#e7c71f', '#bb5695', '#0885a1'], // Row 3
-    ['#ffffff', '#e8e8e8', '#a0a0a0', '#777777', '#3a3a3a', '#050505'], // Row 4
-];
-
-// SMPTE Bar approximate colors (standard 75% bars)
-const SMPTE_BARS = [
-    '#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'
-];
-
-type ToolType = 'screen-green' | 'screen-blue' | 'screen-gray-18' | 'screen-gray-50' | 'color-chart' | 'smpte-bars' | 'grid' | 'custom-image';
-type MarkerStyle = 'cross' | 'dot';
 type MarkerColor = 'white' | 'black' | 'red' | 'blue' | 'green' | 'yellow';
 
 const MARKER_COLORS: Record<MarkerColor, string> = {
@@ -35,12 +16,12 @@ const MARKER_COLORS: Record<MarkerColor, string> = {
 
 export default function QuickTools() {
     const { setMode } = useModeStore();
-    const [selectedTool, setSelectedTool] = useState<ToolType | null>(null);
+    const [selectedTool, setSelectedTool] = useState<QuickToolType | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [tapCount, setTapCount] = useState(0);
 
     // Grid Settings
-    const [markerStyle, setMarkerStyle] = useState<MarkerStyle>('cross');
+    const [gridOverlay, setGridOverlay] = useState<GridOverlayType>(null);
     const [markerColor, setMarkerColor] = useState<MarkerColor>('white');
     const [showGridSettings, setShowGridSettings] = useState(false);
 
@@ -70,136 +51,17 @@ export default function QuickTools() {
         }
     };
 
-    // --- Styles for Grids ---
-    const getGridStyle = () => {
-        const color = MARKER_COLORS[markerColor];
-
-        if (markerStyle === 'cross') {
-            return {
-                backgroundImage: `
-                    linear-gradient(${color} 1px, transparent 1px),
-                    linear-gradient(90deg, ${color} 1px, transparent 1px)
-                `,
-                backgroundSize: '100px 100px',
-                backgroundPosition: 'center center'
-            };
-        } else {
-            return {
-                backgroundImage: `radial-gradient(circle, ${color} 2px, transparent 2.5px)`,
-                backgroundSize: '50px 50px',
-                backgroundPosition: 'center center'
-            };
-        }
-    };
-
-    // --- Render Fullscreen Tool ---
-    const renderToolContent = () => {
-        switch (selectedTool) {
-            case 'screen-green':
-                return <div className="w-full h-full" style={{ backgroundColor: CHROMA_GREEN }} />;
-            case 'screen-blue':
-                return <div className="w-full h-full" style={{ backgroundColor: CHROMA_BLUE }} />;
-            case 'screen-gray-18':
-                return <div className="w-full h-full" style={{ backgroundColor: GRAY_18 }} />;
-            case 'screen-gray-50':
-                return <div className="w-full h-full" style={{ backgroundColor: GRAY_50 }} />;
-            case 'grid':
-                return (
-                    <div className={`w-full h-full relative overflow-hidden ${markerColor === 'black' ? 'bg-white' : 'bg-black'}`}>
-                        {/* The Grid/Markers */}
-                        <div className="absolute inset-0" style={getGridStyle()} />
-
-                        {/* Center Label (Optional) */}
-                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-mono opacity-50 ${markerColor === 'black' ? 'text-black' : 'text-white'}`}>
-                            {markerStyle.toUpperCase()} GRID
-                        </div>
-                    </div>
-                );
-            case 'color-chart':
-                return (
-                    <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center p-4 md:p-10">
-                        <div className="aspect-[6/4] w-full max-w-5xl grid grid-rows-4 gap-1 sm:gap-2 bg-black border-4 border-black p-1 sm:p-2 shadow-2xl">
-                            {COLOR_CHART.map((row, rIdx) => (
-                                <div key={rIdx} className="grid grid-cols-6 gap-1 sm:gap-2">
-                                    {row.map((color, cIdx) => (
-                                        <div key={cIdx} className="w-full h-full shadow-inner" style={{ backgroundColor: color }} />
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            case 'smpte-bars':
-                return (
-                    <div className="w-full h-full flex flex-col">
-                        <div className="flex-1 flex">
-                            {SMPTE_BARS.map((color, i) => (
-                                <div key={i} className="flex-1 h-full" style={{ backgroundColor: color }} />
-                            ))}
-                        </div>
-                        <div className="h-1/4 flex">
-                            <div className="w-[14.28%] bg-[#001d4a]" />
-                            <div className="w-[14.28%] bg-[#ffffff]" />
-                            <div className="w-[14.28%] bg-[#32006a]" />
-                            <div className="w-[14.28%] bg-[#1a1a1a]" />
-                            <div className="w-[14.28%] bg-[#0a0a0a]" />
-                            <div className="w-[14.28%] bg-[#1a1a1a]" />
-                            <div className="w-[14.28%] bg-[#1a1a1a]" />
-                        </div>
-                    </div>
-                );
-            case 'custom-image':
-                return (
-                    <div
-                        className="w-full h-full bg-black flex items-center justify-center relative"
-                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                        onDrop={e => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const file = e.dataTransfer.files[0];
-                            if (file && file.type.startsWith('image/')) {
-                                const reader = new FileReader();
-                                reader.onload = ev => setCustomImage(ev.target?.result as string);
-                                reader.readAsDataURL(file);
-                            }
-                        }}
-                    >
-                        {customImage ? (
-                            <img src={customImage} alt="Custom" className="w-full h-full object-contain" />
-                        ) : (
-                            <label className="cursor-pointer flex flex-col items-center gap-4 p-10 border-2 border-dashed border-white/20 rounded-2xl hover:border-accent-500/50 transition-colors">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-500">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                    <polyline points="21 15 16 10 5 21" />
-                                </svg>
-                                <span className="text-neutral-400 text-sm font-medium">Click to select or drag & drop an image</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={e => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            const reader = new FileReader();
-                                            reader.onload = ev => setCustomImage(ev.target?.result as string);
-                                            reader.readAsDataURL(file);
-                                        }
-                                    }}
-                                />
-                            </label>
-                        )}
-                    </div>
-                );
-            default:
-                return null;
-        }
-    };
-
     if (selectedTool) {
+        const isSolidScreen = ['screen-green', 'screen-blue', 'screen-gray-18', 'screen-gray-50', 'black', 'white', 'calibration-grid'].includes(selectedTool);
+
         return (
             <div className="fixed inset-0 z-50 bg-black overflow-hidden" onClick={handleScreenClick}>
-                {renderToolContent()}
+                <QuickToolRenderer
+                    tool={selectedTool}
+                    gridOverlay={gridOverlay}
+                    customImage={customImage}
+                    markerColor={MARKER_COLORS[markerColor]}
+                />
 
                 {/* Controls Overlay */}
                 <div className={`absolute top-0 left-0 w-full p-6 flex justify-between items-start transition-all duration-300 z-50 ${isLocked ? 'opacity-0 hover:opacity-100 pointer-events-none hover:pointer-events-auto' : 'opacity-100'}`}>
@@ -212,29 +74,36 @@ export default function QuickTools() {
                     </button>
 
                     <div className="flex gap-3">
-                        {/* Grid Settings Toggle (Only for Grid Tool) */}
-                        {selectedTool === 'grid' && (
+                        {/* Grid Settings Toggle (Available on solid screens and calibration grid) */}
+                        {isSolidScreen && (
                             <div className="relative">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setShowGridSettings(!showGridSettings); }}
                                     className={`p-3 rounded-2xl backdrop-blur-md transition-all shadow-lg border border-white/10 flex items-center gap-2 ${showGridSettings ? 'bg-accent-500 text-white' : 'bg-black/50 text-white hover:bg-black/80'}`}
                                 >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-                                    <span className="text-xs font-bold uppercase hidden md:inline">Options</span>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h18v18H3z" /><path d="M12 3v18" /><path d="M3 12h18" /></svg>
+                                    <span className="text-xs font-bold uppercase hidden md:inline">Grid Guide</span>
                                 </button>
 
                                 {/* Settings Popover */}
                                 {showGridSettings && (
-                                    <div className="absolute top-14 right-0 w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl animate-float-in z-50" onClick={e => e.stopPropagation()}>
-                                        <div className="mb-4">
-                                            <label className="text-xs text-neutral-400 font-bold uppercase tracking-wider mb-2 block">Marker Style</label>
-                                            <div className="flex bg-white/10 rounded-lg p-1">
-                                                <button onClick={() => setMarkerStyle('cross')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${markerStyle === 'cross' ? 'bg-accent-500 text-white' : 'text-neutral-400 hover:text-white'}`}>CROSS</button>
-                                                <button onClick={() => setMarkerStyle('dot')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${markerStyle === 'dot' ? 'bg-accent-500 text-white' : 'text-neutral-400 hover:text-white'}`}>DOT</button>
-                                            </div>
+                                    <div className="absolute top-14 right-0 w-64 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl animate-float-in z-50 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+                                        <div>
+                                            <label className="text-xs text-neutral-400 font-bold uppercase tracking-wider mb-2 block">Overlay Grid</label>
+                                            <select
+                                                value={gridOverlay || ''}
+                                                onChange={e => setGridOverlay((e.target.value || null) as GridOverlayType)}
+                                                className="w-full bg-surface-200 border border-white/5 rounded-lg p-2 text-xs text-white outline-none"
+                                            >
+                                                <option value="">No Overlay</option>
+                                                <option value="thirds">Rule of Thirds</option>
+                                                <option value="golden-ratio">Golden Ratio (Phi Grid)</option>
+                                                <option value="golden-spiral">Golden Spiral Guide</option>
+                                                <option value="crosshair">Center Crosshair</option>
+                                            </select>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-400 font-bold uppercase tracking-wider mb-2 block">Marker Color</label>
+                                            <label className="text-xs text-neutral-400 font-bold uppercase tracking-wider mb-2 block">Overlay Color</label>
                                             <div className="grid grid-cols-3 gap-2">
                                                 {(Object.keys(MARKER_COLORS) as MarkerColor[]).map(c => (
                                                     <button
@@ -276,7 +145,7 @@ export default function QuickTools() {
 
     // --- Main Selection Menu ---
     return (
-        <div className="min-h-screen bg-surface-400 p-6 flex flex-col">
+        <div className="min-h-screen bg-surface-400 p-6 flex flex-col overflow-y-auto">
             <header className="flex items-center justify-between mb-8 max-w-6xl mx-auto w-full">
                 <div className="flex items-center gap-4">
                     <button onClick={() => setMode('home')} className="p-3 hover:bg-surface-300 rounded-xl transition-all text-neutral-400 hover:text-white border border-transparent hover:border-white/10">
@@ -284,20 +153,20 @@ export default function QuickTools() {
                     </button>
                     <div>
                         <h1 className="text-2xl font-bold text-white tracking-tight">Quick Tools</h1>
-                        <p className="text-neutral-500 text-xs font-mono uppercase tracking-wider mt-0.5">Instant Calibration • No Session Required</p>
+                        <p className="text-neutral-500 text-xs font-mono uppercase tracking-wider mt-0.5">Instant Callibration • Grids on Solids Included</p>
                     </div>
                 </div>
             </header>
 
-            <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 pb-10">
+            <div className="max-w-6xl mx-auto w-full flex flex-col gap-10 pb-20">
 
                 {/* Screens */}
                 <section>
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-1 h-4 bg-accent-500 rounded-full" />
-                        <h3 className="text-white text-sm font-bold uppercase tracking-widest">Chroma & Screens</h3>
+                        <h3 className="text-white text-sm font-bold uppercase tracking-widest">Chroma & Reference Screens</h3>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <ToolCard
                             title="Digital Green"
                             subtitle="Vibrant Chroma"
@@ -322,22 +191,62 @@ export default function QuickTools() {
                             color={GRAY_50}
                             onClick={() => setSelectedTool('screen-gray-50')}
                         />
+                        <ToolCard
+                            title="Pure Black"
+                            subtitle="OLED Base"
+                            color={PURE_BLACK}
+                            onClick={() => setSelectedTool('black')}
+                        />
+                        <ToolCard
+                            title="Pure White"
+                            subtitle="100% Luma"
+                            color={PURE_WHITE}
+                            onClick={() => setSelectedTool('white')}
+                        />
                     </div>
                 </section>
 
-                {/* Charts & Grids */}
+                {/* Color Charts */}
                 <section>
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-1 h-4 bg-accent-500 rounded-full" />
-                        <h3 className="text-white text-sm font-bold uppercase tracking-widest">Charts & Grids</h3>
+                        <h3 className="text-white text-sm font-bold uppercase tracking-widest">Industry Color Charts</h3>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <ToolCard
-                            title="Color Chart"
-                            subtitle="Macbeth Style"
+                            title="Macbeth Style"
+                            subtitle="Standard 24-Patch"
                             icon={<IconColorChart />}
                             onClick={() => setSelectedTool('color-chart')}
                         />
+                        <ToolCard
+                            title="ColorChecker"
+                            subtitle="Video Target"
+                            icon={<IconColorChart />}
+                            onClick={() => setSelectedTool('color-chart-colorchecker')}
+                        />
+                        <ToolCard
+                            title="ChromaDuMonde"
+                            subtitle="DSC Style Vector"
+                            icon={<IconColorChart />}
+                            onClick={() => setSelectedTool('color-chart-chromadumonde')}
+                        />
+                        <ToolCard
+                            title="Grayscale Wedge"
+                            subtitle="11-Step Density"
+                            icon={<IconSMPTE />}
+                            onClick={() => setSelectedTool('grayscale-wedge')}
+                        />
+                    </div>
+                </section>
+
+                {/* Tech & Custom */}
+                <section>
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-1 h-4 bg-accent-500 rounded-full" />
+                        <h3 className="text-white text-sm font-bold uppercase tracking-widest">Technical & Custom</h3>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <ToolCard
                             title="SMPTE Bars"
                             subtitle="HD Standard"
@@ -349,20 +258,36 @@ export default function QuickTools() {
                             subtitle="Custom Markers"
                             icon={<IconGridCross />}
                             onClick={() => {
-                                // Default to cross/white
-                                setMarkerStyle('cross');
+                                setGridOverlay(null);
                                 setMarkerColor('white');
-                                setSelectedTool('grid');
+                                setSelectedTool('calibration-grid');
                             }}
                         />
                         <ToolCard
                             title="Custom Image"
                             subtitle="From Device"
                             icon={<IconImage />}
-                            onClick={() => setSelectedTool('custom-image')}
+                            onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                input.onchange = (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = ev => {
+                                            setCustomImage(ev.target?.result as string);
+                                            setSelectedTool('custom-image');
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                };
+                                input.click();
+                            }}
                         />
                     </div>
                 </section>
+
             </div>
         </div>
     );
@@ -374,17 +299,16 @@ function ToolCard({ title, subtitle, color, icon, onClick }: { title: string, su
             onClick={onClick}
             className="group glass-panel p-4 text-left hover:border-accent-500/50 hover:shadow-glow-accent transition-all duration-300 active:scale-[0.98] relative overflow-hidden"
         >
-            <div className="h-28 rounded-xl mb-4 w-full relative overflow-hidden flex items-center justify-center bg-surface-300 border border-white/5 shadow-inner">
-                {color && <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style={{ backgroundColor: color }} />}
+            <div className="h-24 rounded-xl mb-4 w-full relative overflow-hidden flex items-center justify-center bg-surface-300 border border-white/5 shadow-inner">
+                {color !== undefined && <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style={{ backgroundColor: color }} />}
                 {icon && <div className="text-neutral-500 group-hover:text-white transition-all transform group-hover:scale-110 duration-300 group-hover:rotate-3">{icon}</div>}
             </div>
-            <h4 className="text-white font-bold tracking-tight group-hover:text-accent-500 transition-colors">{title}</h4>
+            <h4 className="text-white font-bold tracking-tight group-hover:text-accent-500 transition-colors text-sm">{title}</h4>
             <p className="text-neutral-500 text-xs font-medium">{subtitle}</p>
         </button>
     );
 }
 
-// Simple internal generic icons for the cards
 const IconImage = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />

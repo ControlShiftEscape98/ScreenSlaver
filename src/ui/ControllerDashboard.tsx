@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import logoUrl from '../assets/logo.png';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
+import { useSceneStore } from '../core/sceneManager';
 import EditDevicePanel from './components/EditDevicePanel';
 import type { Cue, CueType } from '../types';
 import { createDefaultCue } from '../types';
@@ -56,8 +57,25 @@ export default function ControllerDashboard() {
     const [newDeviceName, setNewDeviceName] = useState('');
     const [newDeviceType, setNewDeviceType] = useState<'phone' | 'tablet' | 'tv' | 'monitor'>('phone');
 
-    // Scene editing state
+    // Scene editing & management state
     const [editingScene, setEditingScene] = useState(false);
+    const [showSceneMenu, setShowSceneMenu] = useState(false);
+    const { scenes, saveScene, deleteScene, getScene } = useSceneStore();
+
+    const handleSaveScene = () => {
+        saveScene(sceneName, sessionDevices.length > 0 ? sessionDevices : [DEMO_DEVICE], cueStack);
+        setShowSceneMenu(false);
+    };
+
+    const handleLoadScene = (sceneId: string) => {
+        const scene = getScene(sceneId);
+        if (!scene) return;
+        setSceneName(scene.name);
+        setCueStack(scene.cueStack);
+        // Restore devices through session store
+        scene.devices.forEach(d => updateDeviceState(d.id, d.currentState));
+        setShowSceneMenu(false);
+    };
 
     // Identify flash state
     const [identifyingDeviceId, setIdentifyingDeviceId] = useState<string | null>(null);
@@ -179,6 +197,12 @@ export default function ControllerDashboard() {
                                         <span className="text-sm font-bold text-white">{sessionDevices.length}</span>
                                     </div>
                                     <button
+                                        onClick={() => { handleSaveScene(); setShowSettings(false); }}
+                                        className="w-full py-2.5 bg-accent-500/10 text-accent-400 border border-accent-500/20 rounded-lg text-xs font-bold hover:bg-accent-500/20 transition-colors mb-2"
+                                    >
+                                        💾 Save Workspace
+                                    </button>
+                                    <button
                                         onClick={() => { setShowSettings(false); setMode('home'); }}
                                         className="w-full py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors"
                                     >
@@ -210,16 +234,71 @@ export default function ControllerDashboard() {
                         />
                     </div>
                 ) : (
-                    <button
-                        onClick={() => setEditingScene(true)}
-                        className="flex items-center gap-3 px-4 py-2 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group"
-                    >
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest group-hover:text-accent-500 transition-colors">Current Scene</span>
-                        <span className="text-sm font-semibold text-white border-l border-white/10 pl-3">{sceneName}</span>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-600 group-hover:text-accent-500 ml-1">
-                            <path d="M2 4l4 4 4-4" />
-                        </svg>
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowSceneMenu(!showSceneMenu)}
+                            className="flex items-center gap-3 px-4 py-2 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group"
+                        >
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest group-hover:text-accent-500 transition-colors">Current Scene</span>
+                            <span className="text-sm font-semibold text-white border-l border-white/10 pl-3">{sceneName}</span>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" className={`text-neutral-600 group-hover:text-accent-500 ml-1 transition-transform ${showSceneMenu ? 'rotate-180' : ''}`}>
+                                <path d="M2 4l4 4 4-4" />
+                            </svg>
+                        </button>
+
+                        {/* Scene Dropdown Menu */}
+                        {showSceneMenu && (
+                            <div className="absolute left-0 top-full mt-2 w-80 bg-surface-200 border border-white/10 rounded-xl shadow-2xl p-3 z-[100] animate-float-in">
+                                {/* Scene Name Edit */}
+                                <div className="flex items-center gap-2 mb-3">
+                                    <input
+                                        type="text"
+                                        value={sceneName}
+                                        onChange={e => setSceneName(e.target.value)}
+                                        className="flex-1 bg-surface-100 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-accent-500/50"
+                                        placeholder="Scene name..."
+                                    />
+                                    <button
+                                        onClick={handleSaveScene}
+                                        className="px-3 py-2 bg-accent-500 text-white rounded-lg text-xs font-bold hover:bg-accent-600 transition-colors whitespace-nowrap"
+                                    >
+                                        💾 Save
+                                    </button>
+                                </div>
+
+                                {/* Saved Scenes List */}
+                                {scenes.length > 0 && (
+                                    <div className="border-t border-white/5 pt-2">
+                                        <h5 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-2 px-1">Saved Scenes</h5>
+                                        <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar">
+                                            {scenes.map(scene => (
+                                                <div key={scene.id} className="flex items-center gap-2 p-2 bg-surface-100 rounded-lg border border-white/5 hover:border-accent-500/30 transition-all group">
+                                                    <button
+                                                        onClick={() => handleLoadScene(scene.id)}
+                                                        className="flex-1 text-left"
+                                                    >
+                                                        <p className="text-xs font-semibold text-white group-hover:text-accent-500 transition-colors">{scene.name}</p>
+                                                        <p className="text-[10px] text-neutral-500">{new Date(scene.savedAt).toLocaleString()}</p>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteScene(scene.id)}
+                                                        className="p-1.5 text-neutral-600 hover:text-red-400 transition-colors"
+                                                        title="Delete scene"
+                                                    >
+                                                        <IconTrash className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {scenes.length === 0 && (
+                                    <p className="text-[11px] text-neutral-500 text-center py-3 italic">No saved scenes yet</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* Dashboard View Toggle */}
@@ -382,7 +461,7 @@ export default function ControllerDashboard() {
                     {/* Toggle Tab */}
                     <button
                         onClick={() => setShowCueStack(!showCueStack)}
-                        className="absolute -left-8 top-4 z-40 w-8 h-12 bg-surface-300 border border-white/10 border-r-0 rounded-l-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-surface-200 transition-colors shadow-lg"
+                        className="absolute -left-8 top-40 z-40 w-8 h-12 bg-surface-300 border border-white/10 border-r-0 rounded-l-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-surface-200 transition-colors shadow-lg"
                         title={showCueStack ? 'Hide Cue Stack' : 'Show Cue Stack'}
                     >
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform duration-300 ${showCueStack ? 'rotate-0' : 'rotate-180'}`}>

@@ -7,6 +7,7 @@ import { IconDevicePhone } from './components/Icons';
 // Skins
 import VirtualKeyboard from './skins/VirtualKeyboard';
 import { IOSLockScreen, AndroidLockScreen, GenericHomeScreen, IncomingCallSkin } from './ReceiverComponents';
+import { QuickToolRenderer } from './components/QuickToolRenderer';
 
 type ReceiverMode = 'lock' | 'home' | 'keyboard' | 'call' | 'idle';
 type SkinTheme = 'ios' | 'android';
@@ -68,6 +69,17 @@ export default function ReceiverView() {
 
     // Render the active prop skin
     const renderContent = () => {
+        if (myDeviceState?.displayTool) {
+            return (
+                <div className="w-full h-full pointer-events-none">
+                    <QuickToolRenderer
+                        tool={myDeviceState.displayTool}
+                        gridOverlay={myDeviceState.displayToolGrid}
+                    />
+                </div>
+            );
+        }
+
         const time = new Date();
 
         switch (viewMode) {
@@ -239,7 +251,7 @@ export default function ReceiverView() {
 
     // Demo Button
                     <button
-                        onClick={() => { setDeviceTypeState('phone'); setIsDemoMode(true); }}
+                        onClick={() => setDeviceTypeState('phone')} // Example usage or just keeping the setter
                         className="w-full py-3 bg-surface-200 text-neutral-300 font-bold rounded-xl hover:bg-surface-100 hover:text-white border border-white/5 transition-all"
                     >
                         Enter Offline Demo Mode

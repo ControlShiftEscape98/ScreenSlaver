@@ -82,7 +82,45 @@ export default function EditDevicePanel({ device, onClose }: EditDevicePanelProp
                     </div>
                 </section>
 
-                {/* 3. Status Bar Simulation */}
+                {/* 3. Display Tool */}
+                <section>
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-3 block">Display Tool Override</label>
+                    <select
+                        value={localState.displayTool || ''}
+                        onChange={(e) => handleChange('displayTool', (e.target.value || null) as any)}
+                        className="w-full bg-surface-200 border border-white/5 rounded-lg p-2 text-xs text-white outline-none mb-2 hover:border-accent-500/50 focus:border-accent-500 transition-colors"
+                    >
+                        <option value="">None (Show App)</option>
+                        <option value="screen-green">Digital Green Screen</option>
+                        <option value="screen-blue">Chroma Blue Screen</option>
+                        <option value="screen-gray-18">18% Dark Gray Screen</option>
+                        <option value="screen-gray-50">50% Light Gray Screen</option>
+                        <option value="black">Pure Black Screen</option>
+                        <option value="white">Pure White Screen</option>
+                        <option value="color-chart">Macbeth Style Chart</option>
+                        <option value="color-chart-colorchecker">ColorChecker Video</option>
+                        <option value="color-chart-chromadumonde">DSC ChromaDuMonde</option>
+                        <option value="grayscale-wedge">11-Step Grayscale Wedge</option>
+                        <option value="smpte-bars">SMPTE Bars</option>
+                        <option value="calibration-grid">Calibration Grid</option>
+                    </select>
+
+                    {['screen-green', 'screen-blue', 'screen-gray-18', 'screen-gray-50', 'black', 'white', 'calibration-grid'].includes(localState.displayTool || '') && (
+                        <select
+                            value={localState.displayToolGrid || ''}
+                            onChange={(e) => handleChange('displayToolGrid', (e.target.value || null) as any)}
+                            className="w-full bg-surface-200 border border-white/5 rounded-lg p-2 text-xs text-white outline-none hover:border-accent-500/50 focus:border-accent-500 transition-colors"
+                        >
+                            <option value="">No Grid Overlay</option>
+                            <option value="thirds">Rule of Thirds</option>
+                            <option value="golden-ratio">Golden Ratio (Phi Grid)</option>
+                            <option value="golden-spiral">Golden Spiral Guide</option>
+                            <option value="crosshair">Center Crosshair</option>
+                        </select>
+                    )}
+                </section>
+
+                {/* 4. Status Bar Simulation */}
                 <section className="space-y-4">
                     <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1 block">Status Simulation</label>
 
@@ -117,7 +155,7 @@ export default function EditDevicePanel({ device, onClose }: EditDevicePanelProp
                     </div>
                 </section>
 
-                {/* 4. Text Input (Only for Keyboard Mode) */}
+                {/* 5. Text Input (Only for Keyboard Mode) */}
                 {localState.currentApp === 'keyboard' && (
                     <section className="animate-fade-in">
                         <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-3 block">Keyboard Input</label>
