@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import logoUrl from '../assets/logo.png';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
 import EditDevicePanel from './components/EditDevicePanel';
@@ -124,15 +125,13 @@ export default function ControllerDashboard() {
                 <div className="flex items-center gap-4">
                     {/* Logo */}
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-surface-100 border border-white/10 flex items-center justify-center shadow-inner">
-                            <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-                                <rect x="4" y="8" width="32" height="24" rx="3" stroke="#f97316" strokeWidth="3" fill="none" />
-                                <rect x="8" y="12" width="10" height="7" rx="1" fill="#f97316" opacity="0.6" />
-                                <line x1="20" y1="32" x2="20" y2="36" stroke="#f97316" strokeWidth="3" />
-                            </svg>
-                        </div>
+                        <img
+                            src={logoUrl}
+                            alt="ScreenSlaver Logo"
+                            className="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(249,115,22,0.25)]"
+                        />
                         <div>
-                            <h1 className="text-sm font-bold text-white leading-none tracking-wide">ScreenSlaver</h1>
+                            <h1 className="text-sm font-bold text-white leading-none tracking-wide">Screen<span className="text-accent-500">Slaver</span></h1>
                             <p className="text-[10px] text-neutral-500 leading-none mt-1 font-medium">Film Set Orchestration</p>
                         </div>
                     </div>
