@@ -46,6 +46,7 @@ export default function ControllerDashboard() {
     const [sceneName, setSceneName] = useState('Sc. 1 Ext. Night - School Bleachers');
     const [showAddCue, setShowAddCue] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showCueStack, setShowCueStack] = useState(true);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -166,7 +167,7 @@ export default function ControllerDashboard() {
                             </svg>
                         </button>
                         {showSettings && (
-                            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-200 border border-white/10 rounded-xl shadow-2xl p-4 z-50 animate-float-in">
+                            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-200 border border-white/10 rounded-xl shadow-2xl p-4 z-[100] animate-float-in">
                                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Session Settings</h4>
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between p-3 bg-surface-100 rounded-lg border border-white/5">
@@ -376,89 +377,102 @@ export default function ControllerDashboard() {
                     )}
                 </div>
 
-                {/* ─── Right Panel — Cue Stack ───────────────── */}
-                <aside className="w-[320px] border-l border-white/5 bg-surface-300 flex flex-col shadow-2xl z-30">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-surface-200/50">
-                        <div>
-                            <h2 className="text-sm font-bold text-white tracking-wide">CUE STACK</h2>
-                            <p className="text-[10px] text-neutral-500 font-medium mt-0.5">SEQUENTIAL CONTROL</p>
+                {/* ─── Right Panel — Cue Stack (Collapsible) ─ */}
+                <div className="relative flex">
+                    {/* Toggle Tab */}
+                    <button
+                        onClick={() => setShowCueStack(!showCueStack)}
+                        className="absolute -left-8 top-4 z-40 w-8 h-12 bg-surface-300 border border-white/10 border-r-0 rounded-l-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-surface-200 transition-colors shadow-lg"
+                        title={showCueStack ? 'Hide Cue Stack' : 'Show Cue Stack'}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform duration-300 ${showCueStack ? 'rotate-0' : 'rotate-180'}`}>
+                            <path d="M5 3l4 4-4 4" />
+                        </svg>
+                    </button>
+
+                    <aside className={`border-l border-white/5 bg-surface-300 flex flex-col shadow-2xl z-30 transition-all duration-300 ease-in-out overflow-hidden ${showCueStack ? 'w-[320px] opacity-100' : 'w-0 opacity-0'}`}>
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-surface-200/50">
+                            <div>
+                                <h2 className="text-sm font-bold text-white tracking-wide">CUE STACK</h2>
+                                <p className="text-[10px] text-neutral-500 font-medium mt-0.5">SEQUENTIAL CONTROL</p>
+                            </div>
+                            <button
+                                onClick={() => setShowAddCue(true)}
+                                className="bg-accent-500 hover:bg-accent-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-glow-accent"
+                            >
+                                + ADD
+                            </button>
                         </div>
-                        <button
-                            onClick={() => setShowAddCue(true)}
-                            className="bg-accent-500 hover:bg-accent-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-glow-accent"
-                        >
-                            + ADD
-                        </button>
-                    </div>
 
-                    {/* Cue List */}
-                    <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1.5 custom-scrollbar">
-                        {cueStack.map((cue, index) => {
-                            const CueIcon = CUE_ICONS[cue.type];
-                            return (
-                                <div key={cue.id} className={`group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 ${cue.fired ? 'bg-surface-100 border-transparent opacity-60' : 'bg-surface-200 border-white/5 hover:border-accent-500/30'}`}>
-                                    <span className="text-xs font-mono text-neutral-600 w-4">{String(index + 1).padStart(2, '0')}</span>
+                        {/* Cue List */}
+                        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1.5 custom-scrollbar">
+                            {cueStack.map((cue, index) => {
+                                const CueIcon = CUE_ICONS[cue.type];
+                                return (
+                                    <div key={cue.id} className={`group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 ${cue.fired ? 'bg-surface-100 border-transparent opacity-60' : 'bg-surface-200 border-white/5 hover:border-accent-500/30'}`}>
+                                        <span className="text-xs font-mono text-neutral-600 w-4">{String(index + 1).padStart(2, '0')}</span>
 
-                                    <div className={`p-2 rounded-lg ${cue.fired ? 'bg-green-500/10 text-green-500' : 'bg-surface-100 text-neutral-300 group-hover:text-white'}`}>
-                                        <CueIcon className="w-5 h-5" />
-                                    </div>
+                                        <div className={`p-2 rounded-lg ${cue.fired ? 'bg-green-500/10 text-green-500' : 'bg-surface-100 text-neutral-300 group-hover:text-white'}`}>
+                                            <CueIcon className="w-5 h-5" />
+                                        </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <p className={`text-sm font-bold truncate ${cue.fired ? 'text-green-500 line-through decoration-green-500/50' : 'text-white'}`}>{cue.name}</p>
-                                        <p className="text-[10px] text-neutral-500">{CUE_LABELS[cue.type]}</p>
-                                    </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-sm font-bold truncate ${cue.fired ? 'text-green-500 line-through decoration-green-500/50' : 'text-white'}`}>{cue.name}</p>
+                                            <p className="text-[10px] text-neutral-500">{CUE_LABELS[cue.type]}</p>
+                                        </div>
 
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-1">
-                                        {cue.fired ? (
+                                        {/* Actions */}
+                                        <div className="flex items-center gap-1">
+                                            {cue.fired ? (
+                                                <button
+                                                    onClick={() => handleResetCue(cue.id)}
+                                                    className="p-1.5 rounded-lg text-neutral-500 hover:bg-surface-300 hover:text-white transition-colors"
+                                                    title="Reset Cue"
+                                                >
+                                                    <IconReset className="w-4 h-4" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleFireCue(cue.id)}
+                                                    className="p-1.5 rounded-lg bg-accent-500/10 text-accent-500 hover:bg-accent-500 hover:text-white transition-colors"
+                                                    title="Fire Cue"
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                                    </svg>
+                                                </button>
+                                            )}
+
                                             <button
-                                                onClick={() => handleResetCue(cue.id)}
-                                                className="p-1.5 rounded-lg text-neutral-500 hover:bg-surface-300 hover:text-white transition-colors"
-                                                title="Reset Cue"
+                                                onClick={() => handleDeleteCue(cue.id)}
+                                                className="p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
                                             >
-                                                <IconReset className="w-4 h-4" />
+                                                <IconTrash className="w-4 h-4" />
                                             </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => handleFireCue(cue.id)}
-                                                className="p-1.5 rounded-lg bg-accent-500/10 text-accent-500 hover:bg-accent-500 hover:text-white transition-colors"
-                                                title="Fire Cue"
-                                            >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                                </svg>
-                                            </button>
-                                        )}
-
-                                        <button
-                                            onClick={() => handleDeleteCue(cue.id)}
-                                            className="p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                                        >
-                                            <IconTrash className="w-4 h-4" />
-                                        </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
 
-                    {/* Master Controls */}
-                    <div className="p-4 bg-surface-200 border-t border-white/5">
-                        <button
-                            onClick={() => {
-                                const next = cueStack.find(c => !c.fired);
-                                if (next) handleFireCue(next.id);
-                            }}
-                            className="w-full py-4 bg-accent-500 text-white font-black text-xl rounded-xl flex items-center justify-center gap-3 shadow-glow-accent hover:shadow-glow-accent-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={cueStack.every(c => c.fired)}
-                        >
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                            GO
-                        </button>
-                    </div>
-                </aside>
+                        {/* Master Controls */}
+                        <div className="p-4 bg-surface-200 border-t border-white/5">
+                            <button
+                                onClick={() => {
+                                    const next = cueStack.find(c => !c.fired);
+                                    if (next) handleFireCue(next.id);
+                                }}
+                                className="w-full py-4 bg-accent-500 text-white font-black text-xl rounded-xl flex items-center justify-center gap-3 shadow-glow-accent hover:shadow-glow-accent-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={cueStack.every(c => c.fired)}
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                                GO
+                            </button>
+                        </div>
+                    </aside>
+                </div>
 
                 {/* Edit Device Panel */}
                 {selectedDevice && (
