@@ -895,14 +895,26 @@ export default function ControllerDashboard() {
 
                         <div className="flex flex-col gap-3">
                             <button
-                                onClick={() => {
-                                    handleSaveScene();
+                                onClick={async () => {
+                                    const store = useSessionStore.getState();
+                                    if (store.sessionId) {
+                                        await SyncEngine.saveSession({
+                                            id: store.sessionId,
+                                            code: store.sessionCode || '000000',
+                                            name: store.sessionName || 'Untitled Workspace',
+                                            hostId: '', // host auth handled by RLS/SyncEngine currently
+                                            devices: store.devices,
+                                            cueStack: store.cueStack,
+                                            presets: [],
+                                            createdAt: new Date().toISOString()
+                                        });
+                                    }
                                     setShowHomeConfirm(false);
                                     setMode('home');
                                 }}
                                 className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl hover:bg-accent-400 transition-colors shadow-glow-accent"
                             >
-                                Save & Leave
+                                Save Workspace & Leave
                             </button>
                             <button
                                 onClick={() => {
