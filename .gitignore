@@ -5,3 +5,9 @@ dist
 coverage
 .tmp
 reference_dump/*.mp4
+
+# Android build artifacts (source stays in git)
+android/app/build
+android/.gradle
+android/build
+android/local.properties
