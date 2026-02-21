@@ -119,6 +119,24 @@ body {
   .tab-pill-active {
     @apply px-4 py-2 text-sm font-medium rounded-lg text-white bg-accent-500/20 border border-accent-500/30;
   }
+
+  /* Quick Tools Responsive Utilities */
+  @media (max-width: 768px) and (orientation: portrait) {
+    .portrait-hidden {
+      display: none !important;
+    }
+
+    .portrait-only {
+      display: flex !important;
+    }
+  }
+
+  @media (min-width: 769px),
+  (orientation: landscape) {
+    .portrait-only {
+      display: none !important;
+    }
+  }
 }
 
 /* ─── Animations ──────────────────────────────────── */

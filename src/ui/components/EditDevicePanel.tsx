@@ -106,17 +106,29 @@ export default function EditDevicePanel({ device, onClose }: EditDevicePanelProp
                     </select>
 
                     {['screen-green', 'screen-blue', 'screen-gray-18', 'screen-gray-50', 'black', 'white', 'calibration-grid'].includes(localState.displayTool || '') && (
-                        <select
-                            value={localState.displayToolGrid || ''}
-                            onChange={(e) => handleChange('displayToolGrid', (e.target.value || null) as any)}
-                            className="w-full bg-surface-200 border border-white/5 rounded-lg p-2 text-xs text-white outline-none hover:border-accent-500/50 focus:border-accent-500 transition-colors"
-                        >
-                            <option value="">No Grid Overlay</option>
-                            <option value="thirds">Rule of Thirds</option>
-                            <option value="golden-ratio">Golden Ratio (Phi Grid)</option>
-                            <option value="golden-spiral">Golden Spiral Guide</option>
-                            <option value="crosshair">Center Crosshair</option>
-                        </select>
+                        <div className="flex flex-col gap-2">
+                            <select
+                                value={localState.displayToolGrid || ''}
+                                onChange={(e) => handleChange('displayToolGrid', (e.target.value || null) as any)}
+                                className="w-full bg-surface-200 border border-white/5 rounded-lg p-2 text-xs text-white outline-none hover:border-accent-500/50 focus:border-accent-500 transition-colors"
+                            >
+                                <option value="">No Grid Overlay</option>
+                                <option value="thirds">Rule of Thirds</option>
+                                <option value="golden-ratio">Golden Ratio (Phi Grid)</option>
+                                <option value="golden-spiral">Golden Spiral Guide</option>
+                                <option value="crosshair">Center Crosshair</option>
+                            </select>
+
+                            <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-surface-200 border border-white/5 hover:bg-white/5 hover:border-white/10 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    checked={localState.displayToolMarkers || false}
+                                    onChange={(e) => handleChange('displayToolMarkers', e.target.checked)}
+                                    className="w-4 h-4 accent-accent-500 bg-surface-300 border border-white/20 rounded cursor-pointer"
+                                />
+                                <span className="text-xs font-medium text-white">Show Tracking Dots</span>
+                            </label>
+                        </div>
                     )}
                 </section>
 

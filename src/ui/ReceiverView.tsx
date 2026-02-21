@@ -18,7 +18,7 @@ export default function ReceiverView() {
 
     // Local state for demo/prop functionality
     const [deviceName, setDeviceName] = useState('');
-    const [deviceType, setDeviceTypeState] = useState<DeviceType>('phone');
+    const [deviceType] = useState<DeviceType>('phone');
     const { setDeviceType } = useSessionStore();
     const [sessionCode, setSessionCode] = useState('');
     const [isJoining, setIsJoining] = useState(false);
@@ -75,6 +75,7 @@ export default function ReceiverView() {
                     <QuickToolRenderer
                         tool={myDeviceState.displayTool}
                         gridOverlay={myDeviceState.displayToolGrid}
+                        displayToolMarkers={myDeviceState.displayToolMarkers}
                     />
                 </div>
             );
@@ -249,12 +250,19 @@ export default function ReceiverView() {
                         {isJoining ? 'Connecting...' : 'Join Session'}
                     </button>
 
-    // Demo Button
+                    <div className="relative flex items-center py-4 mb-2">
+                        <div className="flex-grow border-t border-white/10"></div>
+                        <span className="flex-shrink-0 mx-4 text-neutral-600 text-[10px] font-black uppercase tracking-widest">or try</span>
+                        <div className="flex-grow border-t border-white/10"></div>
+                    </div>
+
+                    {/* Demo Button */}
                     <button
-                        onClick={() => setDeviceTypeState('phone')} // Example usage or just keeping the setter
-                        className="w-full py-3 bg-surface-200 text-neutral-300 font-bold rounded-xl hover:bg-surface-100 hover:text-white border border-white/5 transition-all"
+                        onClick={() => setIsDemoMode(true)}
+                        className="w-full py-3 bg-surface-200 text-neutral-300 font-bold rounded-xl hover:bg-surface-100 hover:text-white border border-white/5 transition-all group flex items-center justify-center gap-2"
                     >
                         Enter Offline Demo Mode
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </button>
                 </div>
             </div>

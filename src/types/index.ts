@@ -4,7 +4,7 @@
 
 // ─── Device Types ────────────────────────────────────
 
-export type DeviceType = 'phone' | 'tablet' | 'monitor' | 'tv';
+export type DeviceType = 'phone' | 'tablet' | 'monitor' | 'tv' | 'laptop' | 'other';
 
 export type DeviceCategory = 'all' | 'phones' | 'tablets' | 'monitors' | 'hero' | 'favorites';
 
@@ -24,6 +24,7 @@ export interface DeviceState {
     screenLocked: boolean;    // Controller lock — prevents touch on receiver
     displayTool: QuickToolType | null;        // Quick tool pushed from controller
     displayToolGrid: GridOverlayType | null;  // Grid overlay on top of display tool
+    displayToolMarkers: boolean | null;       // Calibration dots on top of solid screens
 }
 
 export interface ScreenUnit {
@@ -156,7 +157,7 @@ export interface QuickToolConfig {
 
 // ─── App State Types ─────────────────────────────────
 
-export type AppMode = 'home' | 'controller' | 'receiver' | 'quick-tools';
+export type AppMode = 'home' | 'project-gateway' | 'controller' | 'receiver' | 'quick-tools';
 
 export type DashboardView = 'devices' | 'cue-grid';  // DJ groove box = cue-grid
 
@@ -195,6 +196,7 @@ export const createDefaultDeviceState = (): DeviceState => ({
     screenLocked: false,
     displayTool: null,
     displayToolGrid: null,
+    displayToolMarkers: null,
 });
 
 export const createDefaultCue = (overrides?: Partial<Cue>): Cue => ({

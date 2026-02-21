@@ -6,7 +6,7 @@ import { defaultDeviceState } from '../utils/stateValidator';
 interface SessionState {
     sessionCode: string | null;
     deviceId: string | null;
-    deviceType: 'phone' | 'tablet' | 'tv' | 'monitor';
+    deviceType: 'phone' | 'tablet' | 'tv' | 'monitor' | 'laptop' | 'other';
     role: 'host' | 'client' | null;
     devices: ScreenUnit[]; // For host to track connected devices
     connected: boolean;
@@ -18,13 +18,16 @@ interface SessionState {
     createSession: () => void;
     joinSession: (code: string, name: string) => void;
     leaveSession: () => void;
-    setDeviceType: (type: 'phone' | 'tablet' | 'tv' | 'monitor') => void;
+    setDeviceType: (type: 'phone' | 'tablet' | 'tv' | 'monitor' | 'laptop' | 'other') => void;
 
     // Controller Action to update a device's state
     updateDeviceState: (deviceId: string, updates: Partial<DeviceState>) => void;
 
     // Add a new device (from the "+ Add Device" button)
-    addDevice: (name: string, type: 'phone' | 'tablet' | 'tv' | 'monitor', group?: string) => void;
+    addDevice: (name: string, type: 'phone' | 'tablet' | 'tv' | 'monitor' | 'laptop' | 'other', group?: string) => void;
+
+    // Remove a device
+    removeDevice: (deviceId: string) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -152,5 +155,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             currentState: { ...defaultDeviceState },
         };
         set((state) => ({ devices: [...state.devices, newDevice] }));
+    },
+
+    removeDevice: (deviceId) => {
+        set((state) => ({
+            devices: state.devices.filter(d => d.id !== deviceId),
+        }));
     },
 }));

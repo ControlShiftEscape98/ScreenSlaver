@@ -38,6 +38,28 @@ export function IconDeviceTV({ className }: { className?: string }) {
     );
 }
 
+export function IconDeviceLaptop({ className }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9"></path>
+            <path d="M2 17h20l-1.5 3H3.5L2 17z"></path>
+        </svg>
+    );
+}
+
+export function IconDeviceOther({ className }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+            <circle cx="12" cy="12" r="1"></circle>
+            <line x1="12" y1="8" x2="12" y2="11"></line>
+            <line x1="12" y1="13" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="11" y2="12"></line>
+            <line x1="13" y1="12" x2="16" y2="12"></line>
+        </svg>
+    );
+}
+
 // ─── Cue Types ──────────────────────────────────────────
 
 export function IconCueIncoming({ className }: { className?: string }) {

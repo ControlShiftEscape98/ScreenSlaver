@@ -42,9 +42,10 @@ interface QuickToolRendererProps {
     gridOverlay?: GridOverlayType;
     customImage?: string | null;
     markerColor?: string; // used for generic grids e.g. crosshair on black
+    displayToolMarkers?: boolean | null;
 }
 
-export function QuickToolRenderer({ tool, gridOverlay, customImage, markerColor = 'rgba(255,255,255,0.7)' }: QuickToolRendererProps) {
+export function QuickToolRenderer({ tool, gridOverlay, customImage, markerColor = 'rgba(255,255,255,0.7)', displayToolMarkers }: QuickToolRendererProps) {
     if (!tool) return null;
 
     // Helper: Determine Background Color for Solid Screens
@@ -112,6 +113,16 @@ export function QuickToolRenderer({ tool, gridOverlay, customImage, markerColor 
     if (isSolidScreen) {
         return (
             <div className="w-full h-full relative" style={{ backgroundColor: getBgColor() }}>
+                {displayToolMarkers && (
+                    <div className="absolute inset-0 pointer-events-none" style={{
+                        backgroundImage: `
+                            linear-gradient(${markerColor} 1px, transparent 1px),
+                            linear-gradient(90deg, ${markerColor} 1px, transparent 1px)
+                        `,
+                        backgroundSize: '100px 100px',
+                        backgroundPosition: 'center center'
+                    }} />
+                )}
                 {gridOverlay && (
                     <div className="absolute inset-0 pointer-events-none" style={getGridOverlayStyle()} />
                 )}

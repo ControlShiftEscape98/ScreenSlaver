@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import logoUrl from '../assets/logo.png';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
@@ -10,7 +10,7 @@ import { DEMO_SESSION_CODE, DEMO_DEVICE } from '../utils/demoData';
 import {
     IconCueIncoming, IconCueOutgoing, IconCueText, IconCueNotification,
     IconCueAlarm, IconCueHome, IconCueLock, IconCueIdle,
-    IconDevicePhone, IconDeviceTablet, IconDeviceMonitor, IconDeviceTV,
+    IconDevicePhone, IconDeviceTablet, IconDeviceMonitor, IconDeviceTV, IconDeviceLaptop, IconDeviceOther,
     IconList, IconGrid, IconReset, IconTrash
 } from './components/Icons';
 
@@ -41,8 +41,9 @@ const CUE_LABELS: Record<CueType, string> = {
 
 export default function ControllerDashboard() {
     const { setMode, dashboardView, setDashboardView } = useModeStore();
-    const { devices: sessionDevices, updateDeviceState, addDevice, createSession } = useSessionStore();
+    const { sessionCode, devices: sessionDevices, updateDeviceState, addDevice, removeDevice, createSession, joinSession } = useSessionStore();
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+    const [joinCode, setJoinCode] = useState('');
     const [cueStack, setCueStack] = useState<Cue[]>([]);
     const [sceneName, setSceneName] = useState('Sc. 1 Ext. Night - School Bleachers');
     const [showAddCue, setShowAddCue] = useState(false);
@@ -55,7 +56,37 @@ export default function ControllerDashboard() {
     // Add Device modal state
     const [showAddDevice, setShowAddDevice] = useState(false);
     const [newDeviceName, setNewDeviceName] = useState('');
-    const [newDeviceType, setNewDeviceType] = useState<'phone' | 'tablet' | 'tv' | 'monitor'>('phone');
+    const [newDeviceType, setNewDeviceType] = useState<'phone' | 'tablet' | 'tv' | 'monitor' | 'laptop' | 'other'>('phone');
+
+    // Home confirmation state
+    const [showHomeConfirm, setShowHomeConfirm] = useState(false);
+
+    const handleShareSession = async () => {
+        if (!sessionCode) return;
+        const shareData = {
+            title: 'ScreenSlaver Session',
+            text: `Join my ScreenSlaver session with code: ${sessionCode}`,
+            url: window.location.origin,
+        };
+        try {
+            if (navigator.share && navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+            } else {
+                throw new Error('Web Share not supported');
+            }
+        } catch (err) {
+            navigator.clipboard.writeText(sessionCode);
+            alert('Session code copied to clipboard!');
+        }
+    };
+
+    const handleHomeClick = () => {
+        if (cueStack.length > 0 || sessionDevices.length > 0) {
+            setShowHomeConfirm(true);
+        } else {
+            setMode('home');
+        }
+    };
 
     // Scene editing & management state
     const [editingScene, setEditingScene] = useState(false);
@@ -79,12 +110,6 @@ export default function ControllerDashboard() {
 
     // Identify flash state
     const [identifyingDeviceId, setIdentifyingDeviceId] = useState<string | null>(null);
-
-    // Auto-create session on mount
-    useEffect(() => {
-        createSession();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     // Add Cue form state
     const [newCueName, setNewCueName] = useState('');
@@ -137,8 +162,62 @@ export default function ControllerDashboard() {
 
     const needsContactInfo = ['incoming', 'outgoing', 'text'].includes(newCueType);
 
+    if (!sessionCode) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center p-6 bg-surface-base">
+                <div className="glass-panel-elevated p-8 max-w-sm w-full text-center relative overflow-hidden">
+                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-accent-600 to-orange-400"></div>
+                    <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Controller<span className="text-accent-500">Host</span></h2>
+                    <p className="text-neutral-400 text-sm mb-8 font-medium">Create a new workspace to orchestrate devices, or join an existing session.</p>
+
+                    <button
+                        onClick={createSession}
+                        className="w-full py-4 bg-accent-500 hover:bg-accent-400 text-white font-black rounded-xl shadow-glow-accent transition-all mb-6 flex items-center justify-center gap-2 group"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="group-hover:scale-110 transition-transform"><path d="M12 5v14m-7-7h14" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        START NEW SESSION
+                    </button>
+
+                    <div className="relative flex items-center py-4 mb-2">
+                        <div className="flex-grow border-t border-white/10"></div>
+                        <span className="flex-shrink-0 mx-4 text-neutral-600 text-[10px] font-black uppercase tracking-widest">or join existing</span>
+                        <div className="flex-grow border-t border-white/10"></div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <input
+                            type="text"
+                            placeholder="6-DIGIT CODE"
+                            value={joinCode}
+                            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                            maxLength={6}
+                            className="input-field w-full text-center font-mono text-xl tracking-widest uppercase py-3 placeholder:text-neutral-600"
+                        />
+                        <button
+                            onClick={() => {
+                                if (joinCode.length === 6) {
+                                    joinSession(joinCode, 'Controller Host');
+                                }
+                            }}
+                            disabled={joinCode.length !== 6}
+                            className="w-full py-3 bg-surface-200 hover:bg-surface-100 text-white border border-white/10 font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group flex items-center justify-center gap-2"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                            Join Workspace
+                        </button>
+                    </div>
+
+                    <button onClick={() => setMode('home')} className="mt-8 text-xs font-bold text-neutral-500 hover:text-white transition-colors flex items-center justify-center gap-2 mx-auto">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        Back to Home
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="h-full flex flex-col bg-surface-400">
+        <div className="h-full flex flex-col bg-surface-400 animate-fade-in">
             {/* ─── Header ────────────────────────────────── */}
             <header className="flex items-center justify-between px-6 py-3 bg-surface-300 border-b border-white/5 relative z-20 shadow-sm">
                 <div className="flex items-center gap-4">
@@ -156,10 +235,11 @@ export default function ControllerDashboard() {
                     </div>
 
                     {/* Session Code */}
-                    <div className="flex items-center gap-2 ml-6 px-4 py-2 bg-surface-base rounded-xl border border-white/5 shadow-inner">
-                        <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">Session</span>
-                        <span className="text-lg font-mono font-bold text-accent-500 tracking-widest">{DEMO_SESSION_CODE}</span>
-                    </div>
+                    <button onClick={handleShareSession} className="flex items-center gap-2 ml-6 px-4 py-2 bg-surface-base rounded-xl border border-white/5 shadow-inner hover:bg-surface-100 transition-colors group" title="Click to share or copy">
+                        <span className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold group-hover:text-neutral-400">Session</span>
+                        <span className="text-lg font-mono font-bold text-accent-500 tracking-widest">{sessionCode || DEMO_SESSION_CODE}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-500 group-hover:text-accent-500 ml-1"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" /></svg>
+                    </button>
                 </div>
 
                 {/* Right side */}
@@ -186,11 +266,11 @@ export default function ControllerDashboard() {
                         </button>
                         {showSettings && (
                             <div className="absolute right-0 top-full mt-2 w-72 bg-surface-200 border border-white/10 rounded-xl shadow-2xl p-4 z-[100] animate-float-in">
-                                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Session Settings</h4>
-                                <div className="space-y-2">
+                                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Current Session</h4>
+                                <div className="space-y-2 mb-4">
                                     <div className="flex items-center justify-between p-3 bg-surface-100 rounded-lg border border-white/5">
                                         <span className="text-sm text-neutral-300">Session Code</span>
-                                        <span className="text-sm font-mono font-bold text-accent-500">{DEMO_SESSION_CODE}</span>
+                                        <span className="text-sm font-mono font-bold text-accent-500">{sessionCode || DEMO_SESSION_CODE}</span>
                                     </div>
                                     <div className="flex items-center justify-between p-3 bg-surface-100 rounded-lg border border-white/5">
                                         <span className="text-sm text-neutral-300">Connected Devices</span>
@@ -198,13 +278,32 @@ export default function ControllerDashboard() {
                                     </div>
                                     <button
                                         onClick={() => { handleSaveScene(); setShowSettings(false); }}
-                                        className="w-full py-2.5 bg-accent-500/10 text-accent-400 border border-accent-500/20 rounded-lg text-xs font-bold hover:bg-accent-500/20 transition-colors mb-2"
+                                        className="w-full py-2.5 bg-accent-500/10 text-accent-400 border border-accent-500/20 rounded-lg text-xs font-bold hover:bg-accent-500/20 transition-colors gap-2 flex items-center justify-center"
                                     >
-                                        💾 Save Workspace
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                        Save Workspace
                                     </button>
+                                </div>
+
+                                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Saved Workspaces</h4>
+                                <div className="space-y-2 mb-4">
+                                    <button className="w-full text-left p-3 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group">
+                                        <p className="text-sm font-bold text-white group-hover:text-accent-500 transition-colors">Sc. 1 Ext. Night</p>
+                                        <p className="text-[10px] text-neutral-500">2 Devices • 5 Cues</p>
+                                    </button>
+                                    <button className="w-full text-left p-3 bg-surface-100 hover:bg-surface-50 border border-white/5 hover:border-accent-500/30 rounded-lg transition-all group">
+                                        <p className="text-sm font-bold text-white group-hover:text-accent-500 transition-colors">Sc. 4 Int. Day</p>
+                                        <p className="text-[10px] text-neutral-500">1 Device • 2 Cues</p>
+                                    </button>
+                                    <button className="w-full py-2 text-xs font-bold text-neutral-500 hover:text-white transition-colors">
+                                        View All Workspaces...
+                                    </button>
+                                </div>
+
+                                <div className="border-t border-white/5 pt-4">
                                     <button
-                                        onClick={() => { setShowSettings(false); setMode('home'); }}
-                                        className="w-full py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors"
+                                        onClick={() => { setShowSettings(false); handleHomeClick(); }}
+                                        className="w-full py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors gap-2 flex items-center justify-center"
                                     >
                                         Leave Session
                                     </button>
@@ -212,7 +311,7 @@ export default function ControllerDashboard() {
                             </div>
                         )}
                     </div>
-                    <button className="btn-ghost p-2 text-neutral-400 hover:text-white" onClick={() => setMode('home')}>
+                    <button className="btn-ghost p-2 text-neutral-400 hover:text-white" onClick={handleHomeClick}>
                         <IconCueHome className="w-5 h-5" />
                     </button>
                 </div>
@@ -353,7 +452,9 @@ export default function ControllerDashboard() {
                                     {displayDevices.map(device => {
                                         const DeviceIcon = device.type === 'phone' ? IconDevicePhone :
                                             device.type === 'tablet' ? IconDeviceTablet :
-                                                device.type === 'tv' ? IconDeviceTV : IconDeviceMonitor;
+                                                device.type === 'tv' ? IconDeviceTV :
+                                                    device.type === 'laptop' ? IconDeviceLaptop :
+                                                        device.type === 'monitor' ? IconDeviceMonitor : IconDeviceOther;
 
                                         return (
                                             <div key={device.id} className={`device-card group relative overflow-hidden bg-surface-200 border transition-all rounded-xl p-0 ${identifyingDeviceId === device.id ? 'border-accent-500 shadow-glow-accent ring-2 ring-accent-500/50 animate-pulse' : 'border-white/5 hover:border-accent-500/30'}`}>
@@ -385,18 +486,29 @@ export default function ControllerDashboard() {
                                                     </div>
                                                 </div>
                                                 {/* Hover Actions */}
-                                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20">
-                                                    <button className={`btn-accent text-xs px-4 py-2 rounded-lg ${identifyingDeviceId === device.id ? 'ring-2 ring-white' : ''}`} onClick={(e) => {
+                                                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20">
+                                                    <button className={`btn-accent text-xs px-3 py-2 rounded-lg ${identifyingDeviceId === device.id ? 'ring-2 ring-white' : ''}`} onClick={(e) => {
                                                         e.stopPropagation();
                                                         setIdentifyingDeviceId(device.id);
                                                         updateDeviceState(device.id, { signal: 4 });
                                                         setTimeout(() => setIdentifyingDeviceId(null), 1500);
                                                     }}>Identify</button>
                                                     <button
-                                                        className="bg-surface-100 hover:bg-white/10 text-white text-xs px-4 py-2 rounded-lg border border-white/10"
+                                                        className="bg-surface-100 hover:bg-white/10 text-white text-xs px-3 py-2 rounded-lg border border-white/10"
                                                         onClick={() => setSelectedDeviceId(device.id)}
                                                     >
                                                         Edit
+                                                    </button>
+                                                    <button
+                                                        className="bg-red-500/20 hover:bg-red-500/40 text-red-100 text-xs px-3 py-2 rounded-lg border border-red-500/30 transition-colors"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm(`Remove ${device.name}?`)) {
+                                                                removeDevice(device.id);
+                                                            }
+                                                        }}
+                                                    >
+                                                        Remove
                                                     </button>
                                                 </div>
                                             </div>
@@ -685,8 +797,8 @@ export default function ControllerDashboard() {
                             />
 
                             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Device Type</label>
-                            <div className="grid grid-cols-4 gap-2 mb-6">
-                                {(['phone', 'tablet', 'monitor', 'tv'] as const).map(t => (
+                            <div className="grid grid-cols-3 gap-2 mb-6">
+                                {(['phone', 'tablet', 'monitor', 'tv', 'laptop', 'other'] as const).map(t => (
                                     <button
                                         key={t}
                                         onClick={() => setNewDeviceType(t)}
@@ -709,6 +821,46 @@ export default function ControllerDashboard() {
                                 className="w-full py-3 bg-white text-surface-900 font-bold rounded-xl hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
                             >
                                 Add Device
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ─── Home Confirmation Modal ─────────────────── */}
+            {showHomeConfirm && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="glass-panel-elevated p-8 max-w-sm w-full text-center border border-white/10 animate-scale-in">
+                        <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+                            <IconCueHome className="w-8 h-8 text-red-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">Leave Session?</h3>
+                        <p className="text-sm text-neutral-400 mb-8">Unsaved changes will be lost. Do you want to save this workspace before leaving?</p>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => {
+                                    handleSaveScene();
+                                    setShowHomeConfirm(false);
+                                    setMode('home');
+                                }}
+                                className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl hover:bg-accent-400 transition-colors shadow-glow-accent"
+                            >
+                                Save & Leave
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowHomeConfirm(false);
+                                    setMode('home');
+                                }}
+                                className="w-full py-3 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 border border-red-500/30 transition-colors"
+                            >
+                                Leave Without Saving
+                            </button>
+                            <button
+                                onClick={() => setShowHomeConfirm(false)}
+                                className="w-full py-3 bg-transparent text-neutral-400 font-bold rounded-xl hover:text-white transition-colors mt-2"
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>
