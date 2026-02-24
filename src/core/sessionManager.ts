@@ -36,6 +36,7 @@ interface SessionState {
     addCue: (cue: Cue) => void;
     updateCue: (cueId: string, updates: Partial<Cue>) => void;
     removeCue: (cueId: string) => void;
+    fireCue: (cueId: string) => Promise<void>;
 
     // DB Actions
     loadSessionFromDb: (sessionId: string) => Promise<boolean>;
@@ -143,6 +144,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 }
             });
             set({ syncChannel: channel });
+            console.log(`[SessionStore] Subscribed to cloud session: ${store.sessionId}`);
         }
     },
 
@@ -231,7 +233,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             syncEnabled: true
         });
 
-        console.log('Joined session:', session.code);
+        console.log('[SessionStore] Joined session:', session.code, 'as device:', myId);
 
         get().setupSyncSubscription();
 
@@ -374,6 +376,74 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         if (store.syncEnabled && store.sessionId) {
             SyncEngine.removeCue(cueId);
         }
+    },
+
+    fireCue: async (cueId: string) => {
+        const store = get();
+        const cue = store.cueStack.find(c => c.id === cueId);
+        if (!cue) return;
+
+        console.log(`[SessionStore] Firing cue: ${cue.name} (${cue.type})`);
+
+        // 1. Mark as fired
+        set((state) => ({
+            cueStack: state.cueStack.map(c => c.id === cueId ? { ...c, fired: true } : c)
+        }));
+
+        if (store.syncEnabled && store.sessionId) {
+            SyncEngine.upsertCue(store.sessionId, { ...cue, fired: true });
+        }
+
+        // 2. Identify target devices
+        let targets: ScreenUnit[] = [];
+        if (cue.target.mode === 'all') {
+            targets = store.devices;
+        } else if (cue.target.mode === 'device' && cue.target.deviceId) {
+            const d = store.devices.find(dev => dev.id === cue.target.deviceId);
+            if (d) targets = [d];
+        } else if (cue.target.mode === 'multi-device' && cue.target.deviceIds) {
+            targets = store.devices.filter(dev => cue.target.deviceIds?.includes(dev.id));
+        } else if (cue.target.mode === 'group' && cue.target.groupName) {
+            targets = store.devices.filter(dev => dev.group === cue.target.groupName);
+        }
+
+        // 3. Map cue to state updates
+        const updates: Partial<DeviceState> = {};
+
+        switch (cue.type) {
+            case 'incoming':
+            case 'outgoing':
+                updates.currentApp = cue.type === 'incoming' ? 'call' : 'call'; // Both use call skin
+                if (cue.data?.contactName) {
+                    // Update state with contact info if needed
+                    // In a more complex app, currentApp: 'call' would look at a 'callState' object
+                    // For now, we'll assume the Receiver UI can handle basic cue data
+                    // Actually, let's just push the core UI change
+                }
+                break;
+            case 'text':
+                updates.currentApp = 'messages';
+                if (cue.data?.messageBody) updates.typedText = cue.data.messageBody;
+                break;
+            case 'home':
+                updates.currentApp = 'home';
+                break;
+            case 'lock':
+                updates.currentApp = 'lock';
+                break;
+            case 'idle':
+                updates.currentApp = 'idle';
+                break;
+            case 'terminal':
+                // We don't have a terminal app yet, but we can set it to a future app mode
+                // updates.currentApp = 'terminal';
+                break;
+        }
+
+        // 4. Update all targeted devices
+        targets.forEach(device => {
+            store.updateDeviceState(device.id, updates);
+        });
     },
 
     // ─── DB Actions ──────────────────────────────────────────────────────────

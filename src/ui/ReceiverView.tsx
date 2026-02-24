@@ -75,6 +75,7 @@ export default function ReceiverView() {
     const { setDeviceType } = useSessionStore();
     const [sessionCode, setSessionCode] = useState('');
     const [isJoining, setIsJoining] = useState(false);
+    const [joinProgress, setJoinProgress] = useState<string[]>([]);
 
     // Prop State (Initialized from myDeviceState if available)
     const [isDemoMode, setIsDemoMode] = useState(false); // Bypass session for testing
@@ -484,11 +485,15 @@ export default function ReceiverView() {
                     <button
                         onClick={async () => {
                             setIsJoining(true);
+                            setJoinProgress(['Connecting to cloud...']);
                             try {
                                 setDeviceType(deviceType);
+                                setJoinProgress(prev => [...prev, `Finding session ${sessionCode}...`]);
                                 await joinSession(sessionCode, deviceName);
-                            } catch (err) {
+                                // Success will navigate away
+                            } catch (err: any) {
                                 console.error("Join failed", err);
+                                setJoinProgress(prev => [...prev, `Error: ${err.message || 'Unknown error'}`]);
                             } finally {
                                 setIsJoining(false);
                             }
@@ -498,6 +503,17 @@ export default function ReceiverView() {
                     >
                         {isJoining ? 'Connecting...' : 'Join Session'}
                     </button>
+
+                    {joinProgress.length > 0 && (
+                        <div className="mt-4 p-3 bg-black/40 border border-white/5 rounded-lg font-mono text-[10px] space-y-1">
+                            {joinProgress.map((step, i) => (
+                                <div key={i} className="flex gap-2">
+                                    <span className="text-accent-500">›</span>
+                                    <span className={step.startsWith('Error') ? 'text-red-400' : 'text-neutral-400'}>{step}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="relative flex items-center py-4 mb-2">
                         <div className="flex-grow border-t border-white/10"></div>

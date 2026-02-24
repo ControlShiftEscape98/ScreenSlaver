@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import logoUrl from '../assets/logo.png';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
+import { useAuthStore } from '../core/authManager';
 import { useSceneStore } from '../core/sceneManager';
 import { SyncEngine } from '../core/syncEngine';
 import EditDevicePanel from './components/EditDevicePanel';
@@ -52,7 +53,18 @@ const CUE_LABELS: Record<CueType, string> = {
 
 export default function ControllerDashboard() {
     const { setMode, dashboardView, setDashboardView } = useModeStore();
-    const { sessionCode, devices: sessionDevices, updateDeviceState, addDevice, removeDevice, toggleFavorite, createSession, joinSession } = useSessionStore();
+    const {
+        sessionCode,
+        devices: sessionDevices,
+        updateDeviceState,
+        addDevice,
+        removeDevice,
+        toggleFavorite,
+        createSession,
+        joinSession,
+        syncEnabled
+    } = useSessionStore();
+    const { user } = useAuthStore();
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
     const [joinCode, setJoinCode] = useState('');
     const [cueStack, setCueStack] = useState<Cue[]>([]);
@@ -240,8 +252,10 @@ export default function ControllerDashboard() {
         setShowAddCue(false);
     };
 
+    const { fireCue } = useSessionStore();
+
     const handleFireCue = (cueId: string) => {
-        setCueStack(cueStack.map(c => c.id === cueId ? { ...c, fired: true } : c));
+        fireCue(cueId);
     };
 
     const handleResetCue = (cueId: string) => {
@@ -351,6 +365,12 @@ export default function ControllerDashboard() {
 
                 {/* Right side */}
                 <div className="flex items-center gap-3">
+                    {/* Cloud Status */}
+                    <div className={`flex items-center gap-2 text-[10px] px-2 py-1 rounded-full border ${syncEnabled ? 'bg-accent-500/10 border-accent-500/30 text-accent-500' : 'bg-red-500/10 border-red-500/30 text-red-500'} font-black uppercase tracking-widest`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${syncEnabled ? 'bg-accent-500 animate-pulse' : 'bg-red-500'}`} />
+                        {syncEnabled ? 'Cloud Sync' : 'Offline Mode'}
+                    </div>
+
                     <div className="flex items-center gap-2 text-sm px-3 py-1.5 bg-surface-100/50 rounded-lg border border-white/5">
                         <div className="status-online shadow-glow-online" />
                         <span className="text-neutral-300 font-medium">{sessionDevices.filter(d => d.isOnline).length}/{sessionDevices.length} devices</span>
@@ -381,6 +401,15 @@ export default function ControllerDashboard() {
                         </button>
                         {showSettings && (
                             <div className="absolute right-0 top-full mt-2 w-72 bg-surface-200 border border-white/10 rounded-xl shadow-2xl p-4 z-[100] animate-float-in">
+                                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/5">
+                                    <div className="w-8 h-8 rounded-full bg-accent-500/20 flex items-center justify-center text-xs font-bold text-accent-500 border border-accent-500/20">
+                                        {user?.email?.[0].toUpperCase() || 'G'}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-bold text-white leading-none mb-1">{user?.user_metadata?.full_name || user?.email || 'Guest Session'}</h4>
+                                        <p className="text-[10px] text-neutral-500 font-medium">Syncing to Cloud</p>
+                                    </div>
+                                </div>
                                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Current Session</h4>
                                 <div className="space-y-2 mb-4">
                                     <div className="flex items-center justify-between p-3 bg-surface-100 rounded-lg border border-white/5">
@@ -831,7 +860,7 @@ export default function ControllerDashboard() {
                             <button
                                 onClick={() => {
                                     const next = cueStack.find(c => !c.fired);
-                                    if (next) handleFireCue(next.id);
+                                    if (next) fireCue(next.id);
                                 }}
                                 className="w-full py-4 bg-accent-500 text-white font-black text-xl rounded-xl flex items-center justify-center gap-3 shadow-glow-accent hover:shadow-glow-accent-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={cueStack.every(c => c.fired)}
