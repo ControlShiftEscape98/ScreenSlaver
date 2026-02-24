@@ -176,28 +176,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         commManager.connect();
         commManager.emit('create_session');
 
-        // HOST: Listen for devices joining via BroadcastChannel
-        commManager.on('device_joined', (device: any) => {
-            console.log('Device Joined:', device);
-            const newDevice: ScreenUnit = {
-                id: device.id,
-                name: device.name,
-                type: device.type,
-                group: 'No Group',
-                isFavorite: false,
-                isHero: false,
-                isOnline: true,
-                baseState: defaultDeviceState,
-                currentState: { ...defaultDeviceState, ...device.currentState }
-            };
-            set((state) => ({ devices: [...state.devices, newDevice] }));
-
-            // DB Sync
-            const store = get();
-            if (store.syncEnabled && store.sessionId) {
-                SyncEngine.upsertDevice(store.sessionId, newDevice);
-            }
-        });
+        // HOST is already listening for devices joining via Supabase subscription in setupSyncSubscription()
+        // No need for local broadcast listeners for 'device_joined' in a cloud environment
 
         commManager.on('device_state_updated', (data: { deviceId: string, state: Partial<DeviceState> }) => {
             set((store) => ({
@@ -255,9 +235,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
         get().setupSyncSubscription();
 
-        // Local fallback broadcast comms setup
+        // Local fallback broadcast comms setup (optional, but keep for local tab sync if needed)
         commManager.connect();
-        commManager.emit('join_session', { code, name, type: myDeviceType });
+        // commManager.emit('join_session', { code, name, type: myDeviceType }); // REMOVED: Rely on Supabase upsert
 
         // CLIENT: Listen for state updates targeting ME from local network
         commManager.on('device_state_updated', (data: { deviceId: string, state: Partial<DeviceState> }) => {
