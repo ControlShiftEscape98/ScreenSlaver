@@ -9,6 +9,7 @@ interface AuthState {
     isRedirecting: boolean;
     initialize: () => void;
     signInWithGoogle: () => Promise<void>;
+    signInAnonymously: () => Promise<void>;
     signOut: () => Promise<void>;
     /** Safe display name with fallback */
     getDisplayName: () => string;
@@ -32,7 +33,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         supabase.auth.getSession().then(({ data: { session } }) => {
-            set({ session, user: session?.user || null, isLoading: false, isRedirecting: false });
+            if (session) {
+                set({ session, user: session.user, isLoading: false, isRedirecting: false });
+            } else {
+                // If no session, try anonymous login to satisfy RLS
+                get().signInAnonymously();
+            }
         });
 
         supabase.auth.onAuthStateChange((_event, session) => {
@@ -53,6 +59,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ isRedirecting: false, isLoading: false });
         }
         // Note: successful OAuth redirects away from the page, so no set() needed here
+    },
+
+    signInAnonymously: async () => {
+        set({ isLoading: true });
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+            console.warn('[AuthManager] Anonymous sign-in failed (might be disabled in Supabase):', error);
+            set({ isLoading: false });
+            return;
+        }
+        set({ session: data.session, user: data.user, isLoading: false });
     },
 
     signOut: async () => {
