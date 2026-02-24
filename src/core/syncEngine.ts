@@ -12,10 +12,8 @@ export const SyncEngine = {
 
     async saveSession(session: Session): Promise<boolean> {
         const { user } = useAuthStore.getState();
-        if (!user) {
-            console.warn('[SyncEngine] Not logged in, cannot save session to Supabase');
-            return false;
-        }
+        // Allow anonymous sessions if not logged in
+        const hostId = user?.id || null;
 
         const { error } = await supabase
             .from('sessions')
@@ -23,7 +21,7 @@ export const SyncEngine = {
                 id: session.id,
                 code: session.code,
                 name: session.name,
-                host_id: user.id,
+                host_id: hostId,
                 preset_data: session.presets || [],
                 updated_at: new Date().toISOString()
             });
