@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "notebooklm": {
+            "command": "uvx",
+            "args": [
+                "notebooklm-mcp-server"
+            ]
+        }
+    }
+}

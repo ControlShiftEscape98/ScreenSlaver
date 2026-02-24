@@ -78,16 +78,19 @@ class CommManager {
     private simulateBackendResponse(event: string, data: any) {
         // Simulate Server Logic
         if (event === 'create_session') {
-            const code = '29W95N'; // Fixed code for demo
+            // Echo the session code back to signal success
+            // In a real backend, this would be generated or retrieved.
+            // For local simulation, we'll just allow the host's logic to proceed.
             setTimeout(() => {
-                this.notifyListeners('session_created', code);
+                this.notifyListeners('session_created', data?.code || 'DEMO-CODE');
             }, 500);
         }
 
         if (event === 'join_session') {
             const { code, name, type } = data;
             setTimeout(() => {
-                if (code === '29W95N') {
+                // In local simulation, we accept any code that is exactly 6 chars
+                if (code && code.length === 6) {
                     this.notifyListeners('session_joined', { success: true, code });
                     // Also broadcast to host that a device joined
                     this.channel?.postMessage({
@@ -95,7 +98,7 @@ class CommManager {
                         data: { id: crypto.randomUUID(), name, type, currentState: {} }
                     });
                 } else {
-                    this.notifyListeners('session_joined', { success: false, message: 'Invalid Code' });
+                    this.notifyListeners('session_joined', { success: false, message: 'Invalid Code (Must be 6 characters)' });
                 }
             }, 500);
         }

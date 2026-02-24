@@ -130,22 +130,6 @@ export function QuickToolRenderer({ tool, gridOverlay, customImage, markerColor 
         );
     }
 
-    if (tool === 'calibration-grid') {
-        // High density repeating cross dots (legacy quick tool feature)
-        return (
-            <div className="w-full h-full relative overflow-hidden bg-black">
-                <div className="absolute inset-0 pointer-events-none" style={{
-                    backgroundImage: `
-                        linear-gradient(${markerColor} 1px, transparent 1px),
-                        linear-gradient(90deg, ${markerColor} 1px, transparent 1px)
-                    `,
-                    backgroundSize: '100px 100px',
-                    backgroundPosition: 'center center'
-                }} />
-                {gridOverlay && <div className="absolute inset-0 pointer-events-none" style={getGridOverlayStyle()} />}
-            </div>
-        );
-    }
 
     if (tool === 'color-chart') {
         return (

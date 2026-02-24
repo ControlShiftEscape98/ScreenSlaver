@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "brand_name": "Glido",
+    "description": "Core design tokens for UI implementation including the signature Deep Purple and Lime Green accent."
+  },
+  "colors": {
+    "primary": {
+      "DEFAULT": "#6366F1",
+      "hover": "#4F46E5",
+      "foreground": "#FFFFFF"
+    },
+    "secondary": {
+      "DEFAULT": "#1E293B",
+      "foreground": "#F8FAFC"
+    },
+    "background": "#F8FAFC",
+    "foreground": "#0F172A",
+    "muted": "#94A3B8",
+    "accent": {
+      "DEFAULT": "#BEF264",
+      "foreground": "#000000"
+    },
+    "destructive": "#EF4444",
+    "success": "#22C55E"
+  },
+  "typography": {
+    "font_family_headings": [
+      "Inter",
+      "Canva Sans",
+      "sans-serif"
+    ],
+    "font_family_body": [
+      "Inter",
+      "sans-serif"
+    ],
+    "font_weight_bold": "700",
+    "font_weight_medium": "500",
+    "font_weight_normal": "400"
+  },
+  "ui": {
+    "border_radius_card": "1.5rem",
+    "border_radius_button": "0.75rem",
+    "spacing_base_unit": "4px"
+  }
+}

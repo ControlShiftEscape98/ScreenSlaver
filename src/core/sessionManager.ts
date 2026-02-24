@@ -29,6 +29,7 @@ interface SessionState {
     updateDeviceState: (deviceId: string, updates: Partial<DeviceState>) => void;
     addDevice: (name: string, type: 'phone' | 'tablet' | 'tv' | 'monitor' | 'laptop' | 'other', group?: string) => void;
     removeDevice: (deviceId: string) => void;
+    toggleFavorite: (deviceId: string) => void;
 
     // Cues Actions
     setCueStack: (cues: Cue[]) => void;
@@ -133,6 +134,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                         }
                         return state;
                     });
+                } else if (update.type === 'mode_shift') {
+                    // Update global mode from simulation broadcast
+                    const { state: newState } = update.payload;
+                    set((state) => ({
+                        myDeviceState: state.myDeviceState ? { ...state.myDeviceState, ...newState } : null
+                    }));
                 }
             });
             set({ syncChannel: channel });
@@ -329,6 +336,22 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         if (store.syncEnabled && store.sessionId) {
             SyncEngine.removeDevice(deviceId);
         }
+    },
+
+    toggleFavorite: (deviceId) => {
+        set((store) => {
+            const nextDevices = store.devices.map(d => {
+                if (d.id === deviceId) {
+                    const updatedDevice = { ...d, isFavorite: !d.isFavorite };
+                    if (store.syncEnabled && store.sessionId) {
+                        SyncEngine.upsertDevice(store.sessionId, updatedDevice);
+                    }
+                    return updatedDevice;
+                }
+                return d;
+            });
+            return { devices: nextDevices };
+        });
     },
 
     // ─── Cues Actions ────────────────────────────────────────────────────────

@@ -244,6 +244,9 @@ export const SyncEngine = {
                     onUpdate({ type: 'cue', payload });
                 }
             )
+            .on('broadcast', { event: 'mode_shift' }, ({ payload }) => {
+                onUpdate({ type: 'mode_shift', payload });
+            })
             .subscribe();
     },
 

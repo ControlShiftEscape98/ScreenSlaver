@@ -18,11 +18,11 @@
 - [ ] Handshake: Build minimal scripts in `tools/` to verify communication between Controller and Receiver
 
 ## ⚙️ Phase 3: Architect (A.N.T. 3-Layer Build)
-- [ ] Layer 1: Technical SOPs in `architecture/`
+- [x] Layer 1: Technical SOPs in `architecture/`
     - [x] `session-management.md`
     - [x] `device-state-sync.md`
-    - [ ] `cue-execution.md`
-    - [ ] `skin-rendering.md`
+    - [x] `cue-execution.md`
+    - [x] `skin-rendering.md`
 - [ ] Layer 2: Core Navigation in `src/core/`
     - [ ] `modeManager.ts`
     - [ ] `sessionManager.ts`

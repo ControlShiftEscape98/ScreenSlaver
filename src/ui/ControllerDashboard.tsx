@@ -5,14 +5,16 @@ import { useSessionStore } from '../core/sessionManager';
 import { useSceneStore } from '../core/sceneManager';
 import { SyncEngine } from '../core/syncEngine';
 import EditDevicePanel from './components/EditDevicePanel';
+import AiCopilotPanel from './components/AiCopilotPanel';
 import type { Cue, CueType, Session } from '../types';
 import { createDefaultCue } from '../types';
 import { DEMO_SESSION_CODE, DEMO_DEVICE } from '../utils/demoData';
 import {
     IconCueIncoming, IconCueOutgoing, IconCueText, IconCueNotification,
     IconCueAlarm, IconCueHome, IconCueLock, IconCueIdle,
+    IconCueLoading, IconCueTerminal, IconCueVideo, IconCueError,
     IconDevicePhone, IconDeviceTablet, IconDeviceMonitor, IconDeviceTV, IconDeviceLaptop, IconDeviceOther,
-    IconList, IconGrid, IconReset, IconTrash
+    IconList, IconGrid, IconReset, IconTrash, IconStar
 } from './components/Icons';
 
 // Map cue types to Icons
@@ -25,24 +27,32 @@ const CUE_ICONS: Record<CueType, React.ElementType> = {
     home: IconCueHome,
     lock: IconCueLock,
     idle: IconCueIdle,
+    loading: IconCueLoading,
+    terminal: IconCueTerminal,
+    video: IconCueVideo,
+    error: IconCueError,
 };
 
 const CUE_LABELS: Record<CueType, string> = {
-    incoming: 'Incoming',
-    outgoing: 'Outgoing',
+    incoming: 'Incoming Call',
+    outgoing: 'Outgoing Call',
     text: 'Text Message',
-    notification: 'Notification',
+    notification: 'System Notification',
     alarm: 'Alarm / Timer',
     home: 'Home Screen',
     lock: 'Lock Screen',
-    idle: 'Idle Mode',
+    idle: 'Idle / Sleep',
+    loading: 'Suspense Loading',
+    terminal: 'Hacker Terminal',
+    video: 'Video / Surveillance',
+    error: 'Critical Error',
 };
 
 
 
 export default function ControllerDashboard() {
     const { setMode, dashboardView, setDashboardView } = useModeStore();
-    const { sessionCode, devices: sessionDevices, updateDeviceState, addDevice, removeDevice, createSession, joinSession } = useSessionStore();
+    const { sessionCode, devices: sessionDevices, updateDeviceState, addDevice, removeDevice, toggleFavorite, createSession, joinSession } = useSessionStore();
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
     const [joinCode, setJoinCode] = useState('');
     const [cueStack, setCueStack] = useState<Cue[]>([]);
@@ -50,6 +60,8 @@ export default function ControllerDashboard() {
     const [showAddCue, setShowAddCue] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showCueStack, setShowCueStack] = useState(true);
+    const [showAiCopilot, setShowAiCopilot] = useState(false);
+    const [activeCategory, setActiveCategory] = useState<'all' | 'favorites' | 'phone' | 'tablet' | 'monitor' | 'laptop'>('all');
 
     const [savedWorkspaces, setSavedWorkspaces] = useState<Session[]>([]);
     const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
@@ -59,6 +71,20 @@ export default function ControllerDashboard() {
             loadWorkspaces();
         }
     }, [showSettings]);
+
+    // Prevent accidental closure if hosting a session
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            const store = useSessionStore.getState();
+            if (store.connected && store.role === 'host') {
+                e.preventDefault();
+                e.returnValue = ''; // Standard trigger for browser generic warning dialog
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, []);
 
     const loadWorkspaces = async () => {
         setLoadingWorkspaces(true);
@@ -122,7 +148,8 @@ export default function ControllerDashboard() {
     };
 
     const handleHomeClick = () => {
-        if (cueStack.length > 0 || sessionDevices.length > 0) {
+        // ALWAYS show confirmation if connected to a session
+        if (sessionCode) {
             setShowHomeConfirm(true);
         } else {
             setMode('home');
@@ -155,26 +182,61 @@ export default function ControllerDashboard() {
     // Add Cue form state
     const [newCueName, setNewCueName] = useState('');
     const [newCueType, setNewCueType] = useState<CueType>('incoming');
-    const [newCueTarget, setNewCueTarget] = useState<'device' | 'group'>('device');
     const [newCueContactName, setNewCueContactName] = useState('');
     const [newCuePhone, setNewCuePhone] = useState('');
+    const [selectedTargets, setSelectedTargets] = useState<string[]>(['all']);
+
+    // Extended form state
+    const [newCueSubtitle, setNewCueSubtitle] = useState('');
+    const [newCueColor, setNewCueColor] = useState('#f97316');
+    const [newCueLoadingText, setNewCueLoadingText] = useState('Downloading Data...');
+    const [newCueTerminalCode, setNewCueTerminalCode] = useState('sudo rm -rf /');
+    const [newCueMessageBody, setNewCueMessageBody] = useState('');
 
     const handleAddCue = () => {
         if (!newCueName.trim()) return;
-        const targetDeviceId = newCueTarget === 'device' ? sessionDevices[0]?.id : undefined;
+
+        // Build the precise data object based on type
+        let cueData: Record<string, any> = {};
+        if (['incoming', 'outgoing', 'text'].includes(newCueType)) {
+            cueData = { contactName: newCueContactName, phoneNumber: newCuePhone, messageBody: newCueMessageBody };
+        } else if (newCueType === 'loading') {
+            cueData = { loadingText: newCueLoadingText, title: newCueName };
+        } else if (newCueType === 'terminal') {
+            cueData = { terminalCode: newCueTerminalCode };
+        } else if (['notification', 'error', 'alarm', 'video'].includes(newCueType)) {
+            cueData = { title: newCueName, subtitle: newCueSubtitle };
+        }
+
+        const isAll = selectedTargets.includes('all');
+        const groups = selectedTargets.filter(t => t.startsWith('cat:'));
+        const individualDevices = selectedTargets.filter(t => !t.startsWith('cat:') && t !== 'all');
+
         const cue = createDefaultCue({
             name: newCueName,
             type: newCueType,
-            target: { mode: newCueTarget, deviceId: targetDeviceId },
-            data: (newCueType === 'incoming' || newCueType === 'outgoing' || newCueType === 'text')
-                ? { contactName: newCueContactName, phoneNumber: newCuePhone }
-                : null,
+            target: {
+                mode: isAll ? 'all' : (selectedTargets.length > 1 ? 'multi-device' : (groups.length > 0 ? 'group' : 'device')),
+                deviceId: individualDevices.length === 1 ? individualDevices[0] : undefined,
+                deviceIds: selectedTargets,
+                groupName: groups.length === 1 ? groups[0].replace('cat:', '') : undefined
+            },
+            data: Object.keys(cueData).length > 0 ? cueData as any : null,
+            color: newCueColor,
             order: cueStack.length,
         });
+
         setCueStack([...cueStack, cue]);
+
+        // Reset state
         setNewCueName('');
         setNewCueContactName('');
         setNewCuePhone('');
+        setNewCueSubtitle('');
+        setNewCueLoadingText('Downloading Data...');
+        setNewCueTerminalCode('sudo rm -rf /');
+        setNewCueMessageBody('');
+        setSelectedTargets(['all']);
         setShowAddCue(false);
     };
 
@@ -190,14 +252,18 @@ export default function ControllerDashboard() {
         setCueStack(cueStack.filter(c => c.id !== cueId));
     };
 
-    // Sync session devices to local display if needed, or just use sessionDevices
-    const allDevices = sessionDevices.length > 0 ? sessionDevices : [DEMO_DEVICE];
-    const displayDevices = searchQuery.trim()
-        ? allDevices.filter(d =>
-            d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            d.type.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        : allDevices;
+    // List Filtering Logic
+    const displayDevices = (sessionDevices.length > 0 ? sessionDevices : [DEMO_DEVICE]).filter(d => {
+        const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            d.id.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesCategory =
+            activeCategory === 'all' ? true :
+                activeCategory === 'favorites' ? d.isFavorite :
+                    d.type === activeCategory;
+
+        return matchesSearch && matchesCategory;
+    });
 
     const selectedDevice = displayDevices.find(d => d.id === selectedDeviceId);
 
@@ -289,6 +355,14 @@ export default function ControllerDashboard() {
                         <div className="status-online shadow-glow-online" />
                         <span className="text-neutral-300 font-medium">{sessionDevices.filter(d => d.isOnline).length}/{sessionDevices.length} devices</span>
                     </div>
+
+                    <button
+                        className={`btn-ghost text-xs flex items-center gap-2 ${showAiCopilot ? 'bg-accent-500/20 text-accent-500' : 'bg-surface-200'} transition-colors`}
+                        onClick={() => setShowAiCopilot(!showAiCopilot)}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2a10 10 0 1 0 10 10H12V2z" /><path d="M12 12L2.1 12" /><path d="M12 12l8.66 5" /></svg>
+                        AI Copilot
+                    </button>
 
                     <button className="btn-ghost text-xs flex items-center gap-2 bg-surface-200" onClick={() => {
                         // Reset all logic would go here
@@ -483,29 +557,54 @@ export default function ControllerDashboard() {
 
                     {dashboardView === 'devices' ? (
                         <>
-                            {/* Toolbar (Simplified for visual clarity) */}
-                            <div className="flex items-center gap-3 px-6 py-4">
-                                <div className="flex-1 relative">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
-                                        <circle cx="11" cy="11" r="8"></circle>
-                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        placeholder="Search devices..."
-                                        value={searchQuery}
-                                        onChange={e => setSearchQuery(e.target.value)}
-                                        className="input-field pl-10 py-2 text-sm w-full shadow-inner"
-                                    />
+                            {/* Category Filter Rail */}
+                            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-surface-base">
+                                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 pr-4">
+                                    {[
+                                        { id: 'all', label: 'All' },
+                                        { id: 'favorites', label: 'Favorites', icon: IconStar },
+                                        { id: 'phone', label: 'Phones' },
+                                        { id: 'tablet', label: 'Tablets' },
+                                        { id: 'monitor', label: 'Displays' },
+                                        { id: 'laptop', label: 'Laptops' },
+                                    ].map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => setActiveCategory(cat.id as any)}
+                                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all border flex items-center gap-1.5
+                                                ${activeCategory === cat.id
+                                                    ? 'bg-accent-500 border-accent-500 text-white shadow-glow-accent'
+                                                    : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100 hover:text-white'
+                                                }`}
+                                        >
+                                            {cat.icon && <cat.icon className="w-3 h-3" />}
+                                            {cat.label}
+                                        </button>
+                                    ))}
                                 </div>
-                                <button className="btn-accent text-xs flex items-center gap-2" onClick={() => setShowAddDevice(true)}>
-                                    <span>+</span> Add Device
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <div className="relative group/search">
+                                        <input
+                                            type="text"
+                                            placeholder="Search IDs..."
+                                            value={searchQuery}
+                                            onChange={e => setSearchQuery(e.target.value)}
+                                            className="bg-surface-200 border border-white/5 rounded-lg py-1.5 px-3 pl-8 text-[10px] text-white focus:border-accent-500/50 outline-none w-28 transition-all group-hover/search:w-40"
+                                        />
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-500">
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                        </svg>
+                                    </div>
+                                    <button className="btn-accent px-4 py-1.5 text-[10px] font-black uppercase tracking-wider flex items-center gap-2" onClick={() => setShowAddDevice(true)}>
+                                        <span className="text-sm">+</span> Add Device
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Device Cards */}
                             <div className="flex-1 overflow-y-auto px-6 pb-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
                                     {displayDevices.map(device => {
                                         const DeviceIcon = device.type === 'phone' ? IconDevicePhone :
                                             device.type === 'tablet' ? IconDeviceTablet :
@@ -526,7 +625,18 @@ export default function ControllerDashboard() {
                                                                 <p className="text-[10px] text-neutral-500 font-mono mt-0.5">{device.type.toUpperCase()} • ID: {device.id.slice(-4)}</p>
                                                             </div>
                                                         </div>
-                                                        <div className={`w-2 h-2 rounded-full ${device.isOnline ? 'bg-green-500 shadow-glow-online' : 'bg-red-500'}`} />
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    toggleFavorite(device.id);
+                                                                }}
+                                                                className={`p-1 transition-colors ${device.isFavorite ? 'text-yellow-400' : 'text-neutral-600 hover:text-neutral-400'}`}
+                                                            >
+                                                                <IconStar className="w-4 h-4" fill={device.isFavorite ? "currentColor" : "none"} />
+                                                            </button>
+                                                            <div className={`w-2 h-2 rounded-full ${device.isOnline ? 'bg-green-500 shadow-glow-online' : 'bg-red-500'}`} />
+                                                        </div>
                                                     </div>
 
                                                     {/* Status Grid */}
@@ -552,9 +662,22 @@ export default function ControllerDashboard() {
                                                     }}>Identify</button>
                                                     <button
                                                         className="bg-surface-100 hover:bg-white/10 text-white text-xs px-3 py-2 rounded-lg border border-white/10"
-                                                        onClick={() => setSelectedDeviceId(device.id)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedDeviceId(device.id);
+                                                        }}
                                                     >
                                                         Edit
+                                                    </button>
+                                                    <button
+                                                        className={`p-2 rounded-lg border flex items-center justify-center transition-all ${device.isFavorite ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-surface-100 text-neutral-400 border-white/10 hover:text-white'}`}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleFavorite(device.id);
+                                                        }}
+                                                        title={device.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                                                    >
+                                                        <IconStar className="w-4 h-4" fill={device.isFavorite ? "currentColor" : "none"} />
                                                     </button>
                                                     <button
                                                         className="bg-red-500/20 hover:bg-red-500/40 text-red-100 text-xs px-3 py-2 rounded-lg border border-red-500/30 transition-colors"
@@ -742,7 +865,7 @@ export default function ControllerDashboard() {
                             </button>
                         </div>
 
-                        <div className="p-6">
+                        <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             {/* Cue Name */}
                             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Cue Name</label>
                             <input
@@ -756,74 +879,221 @@ export default function ControllerDashboard() {
 
                             {/* Cue Type Grid */}
                             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Trigger Type</label>
-                            <div className="grid grid-cols-4 gap-3 mb-6">
+                            <div className="grid grid-cols-4 gap-2 mb-6">
                                 {(Object.keys(CUE_ICONS) as CueType[]).map(type => {
                                     const TypeIcon = CUE_ICONS[type];
                                     return (
                                         <button
                                             key={type}
                                             onClick={() => setNewCueType(type)}
-                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center
+                                            className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border transition-all text-center aspect-[5/4]
                                             ${newCueType === type
-                                                    ? 'border-accent-500 bg-accent-500 text-white shadow-glow-accent'
+                                                    ? 'border-accent-500 bg-accent-500/10 text-accent-500 shadow-glow-accent/20'
                                                     : 'border-white/5 bg-surface-200 text-neutral-400 hover:bg-surface-100 hover:text-white'
                                                 }`}
                                         >
-                                            <TypeIcon className="w-6 h-6" />
-                                            <span className="text-[10px] font-bold">{CUE_LABELS[type]}</span>
+                                            <TypeIcon className="w-5 h-5" />
+                                            <span className="text-[9px] font-bold leading-tight">{CUE_LABELS[type]}</span>
                                         </button>
                                     );
                                 })}
                             </div>
 
-                            {/* Conditional Inputs for Phone/Contact */}
-                            {needsContactInfo && (
-                                <div className="grid grid-cols-2 gap-4 mb-6 animate-fade-in">
-                                    <div>
-                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Contact Name</label>
-                                        <input
-                                            type="text"
-                                            value={newCueContactName}
-                                            onChange={e => setNewCueContactName(e.target.value)}
-                                            placeholder="e.g. Mom"
-                                            className="input-field"
-                                        />
+                            {/* Base Customization (For most cues) */}
+                            <div className="mb-6 animate-fade-in space-y-4">
+                                {/* Conditional Inputs for Phone/Contact */}
+                                {needsContactInfo && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Contact Name</label>
+                                            <input
+                                                type="text"
+                                                value={newCueContactName}
+                                                onChange={e => setNewCueContactName(e.target.value)}
+                                                placeholder="e.g. Mom"
+                                                className="input-field"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Phone Number</label>
+                                            <input
+                                                type="text"
+                                                value={newCuePhone}
+                                                onChange={e => setNewCuePhone(e.target.value)}
+                                                placeholder="e.g. 555-0123"
+                                                className="input-field"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Phone Number</label>
-                                        <input
-                                            type="text"
-                                            value={newCuePhone}
-                                            onChange={e => setNewCuePhone(e.target.value)}
-                                            placeholder="e.g. 555-0123"
-                                            className="input-field"
-                                        />
-                                    </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Target Selection */}
-                            <div className="mb-8">
-                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Target</label>
-                                <div className="flex bg-surface-200 p-1 rounded-xl border border-white/5">
-                                    <button
-                                        onClick={() => setNewCueTarget('device')}
-                                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${newCueTarget === 'device' ? 'bg-surface-100 text-white shadow-sm' : 'text-neutral-500 hover:text-white'}`}
-                                    >
-                                        Specific Device
-                                    </button>
-                                    <button
-                                        onClick={() => setNewCueTarget('group')}
-                                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${newCueTarget === 'group' ? 'bg-surface-100 text-white shadow-sm' : 'text-neutral-500 hover:text-white'}`}
-                                    >
-                                        Device Group
-                                    </button>
-                                </div>
+                                {/* Loading Bar Inputs */}
+                                {newCueType === 'loading' && (
+                                    <div>
+                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Loading Text</label>
+                                        <input
+                                            type="text"
+                                            value={newCueLoadingText}
+                                            onChange={e => setNewCueLoadingText(e.target.value)}
+                                            placeholder="e.g. Downloading Data..."
+                                            className="input-field w-full"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Terminal Inputs */}
+                                {newCueType === 'terminal' && (
+                                    <div>
+                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Terminal Code / Command</label>
+                                        <textarea
+                                            value={newCueTerminalCode}
+                                            onChange={e => setNewCueTerminalCode(e.target.value)}
+                                            placeholder="e.g. sudo rm -rf /"
+                                            className="input-field w-full font-mono text-xs custom-scrollbar min-h-[80px]"
+                                        />
+                                    </div>
+                                )}
+
+                                {newCueType === 'text' && (
+                                    <div className="animate-fade-in-up">
+                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Message Content</label>
+                                        <textarea
+                                            rows={2}
+                                            value={newCueMessageBody}
+                                            onChange={e => setNewCueMessageBody(e.target.value)}
+                                            placeholder="Type message content here..."
+                                            className="input-field w-full resize-none py-3"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Subtitle for Notification, Alarm, Error, Video */}
+                                {['notification', 'error', 'alarm', 'video'].includes(newCueType) && (
+                                    <div>
+                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Subtitle / Description</label>
+                                        <input
+                                            type="text"
+                                            value={newCueSubtitle}
+                                            onChange={e => setNewCueSubtitle(e.target.value)}
+                                            placeholder="Optional subtitle text..."
+                                            className="input-field w-full"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Color Picker - Customization (Hacker Terminal style) */}
+                                {newCueType === 'terminal' && (
+                                    <div>
+                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Highlight Color</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={newCueColor}
+                                                onChange={e => setNewCueColor(e.target.value)}
+                                                className="w-10 h-10 rounded-lg cursor-pointer border border-white/10 bg-surface-100 p-0.5 shadow-inner"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={newCueColor}
+                                                onChange={e => setNewCueColor(e.target.value)}
+                                                className="input-field font-mono text-sm uppercase flex-1 max-w-[120px]"
+                                                maxLength={7}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
+                            {/* Target Selection */}
+                            {/* Destination Selection (Unified) */}
+                            <div className="mb-8">
+                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Target Destination</label>
+                                <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                    {/* Broadcast Option */}
+                                    <button
+                                        onClick={() => setSelectedTargets(['all'])}
+                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedTargets.includes('all') ? 'bg-accent-500 border-accent-500 text-white shadow-glow-accent/20' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                            </div>
+                                            <span className="text-sm font-bold tracking-wide">Broadcast to All Devices</span>
+                                        </div>
+                                        {selectedTargets.includes('all') && <div className="w-2 h-2 rounded-full bg-white shadow-glow-white" />}
+                                    </button>
+
+                                    {/* Categories */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { id: 'cat:favorites', label: 'Favorites', icon: IconStar },
+                                            { id: 'cat:phone', label: 'Phones', icon: IconDevicePhone },
+                                            { id: 'cat:tablet', label: 'Tablets', icon: IconDeviceTablet },
+                                            { id: 'cat:monitor', label: 'Displays', icon: IconDeviceMonitor },
+                                            { id: 'cat:laptop', label: 'Laptops', icon: IconDeviceLaptop },
+                                        ].map(cat => {
+                                            const isSelected = selectedTargets.includes(cat.id);
+                                            const Icon = cat.icon;
+                                            return (
+                                                <button
+                                                    key={cat.id}
+                                                    onClick={() => {
+                                                        const next = selectedTargets.includes('all') ? [cat.id] : (
+                                                            isSelected ? selectedTargets.filter(t => t !== cat.id) : [...selectedTargets, cat.id]
+                                                        );
+                                                        setSelectedTargets(next.length === 0 ? ['all'] : next);
+                                                    }}
+                                                    className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-accent-500/10 border-accent-500 text-accent-500' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
+                                                >
+                                                    <Icon className="w-4 h-4" />
+                                                    <span className="text-xs font-bold leading-none">{cat.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Specific Devices */}
+                                    {sessionDevices.length > 0 && (
+                                        <div className="space-y-1.5 pt-2">
+                                            <h4 className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest px-1">Specific Devices</h4>
+                                            {sessionDevices.map(device => {
+                                                const isSelected = selectedTargets.includes(device.id);
+                                                const DeviceIcon = device.type === 'phone' ? IconDevicePhone :
+                                                    device.type === 'tablet' ? IconDeviceTablet :
+                                                        device.type === 'laptop' ? IconDeviceLaptop :
+                                                            device.type === 'monitor' ? IconDeviceMonitor : IconDeviceOther;
+                                                return (
+                                                    <button
+                                                        key={device.id}
+                                                        onClick={() => {
+                                                            const next = selectedTargets.includes('all') ? [device.id] : (
+                                                                isSelected ? selectedTargets.filter(t => t !== device.id) : [...selectedTargets, device.id]
+                                                            );
+                                                            setSelectedTargets(next.length === 0 ? ['all'] : next);
+                                                        }}
+                                                        className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-accent-500/10 border-accent-500 text-accent-500 shadow-glow-accent/5' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <DeviceIcon className="w-4 h-4" />
+                                                            <span className="text-xs font-bold">{device.name}</span>
+                                                        </div>
+                                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-accent-500 shadow-glow-accent" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 pt-0">
                             <button
                                 onClick={handleAddCue}
-                                className="w-full py-3 bg-white text-surface-900 font-bold rounded-xl hover:bg-neutral-200 active:scale-[0.98] transition-all"
+                                disabled={!newCueName.trim()}
+                                className={`w-full py-3.5 text-base font-bold rounded-xl transition-all active:scale-[0.98] border
+                                ${newCueName.trim()
+                                        ? 'bg-white text-surface-400 border-white hover:bg-neutral-100 shadow-lg'
+                                        : 'bg-surface-200 text-neutral-600 border-white/5 cursor-not-allowed'}`}
                             >
                                 Create Cue
                             </button>
@@ -875,7 +1145,10 @@ export default function ControllerDashboard() {
                                     }
                                 }}
                                 disabled={!newDeviceName.trim()}
-                                className="w-full py-3 bg-white text-surface-900 font-bold rounded-xl hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+                                className={`w-full py-3.5 text-base font-bold rounded-xl transition-all active:scale-[0.98] border
+                                    ${newDeviceName.trim()
+                                        ? 'bg-white text-surface-400 border-white hover:bg-neutral-100 shadow-lg'
+                                        : 'bg-surface-200 text-neutral-600 border-white/5 cursor-not-allowed'}`}
                             >
                                 Add Device
                             </button>
@@ -883,6 +1156,7 @@ export default function ControllerDashboard() {
                     </div>
                 </div>
             )}
+
             {/* ─── Home Confirmation Modal ─────────────────── */}
             {showHomeConfirm && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
@@ -935,6 +1209,9 @@ export default function ControllerDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* AI Copilot Panel */}
+            {showAiCopilot && <AiCopilotPanel onClose={() => setShowAiCopilot(false)} />}
         </div>
     );
 }

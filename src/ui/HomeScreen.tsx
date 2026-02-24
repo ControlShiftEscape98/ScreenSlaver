@@ -173,8 +173,7 @@ export default function HomeScreen() {
                 <button
                     onClick={() => setTipIndex((i) => (i + 1) % ASSISTANT_TIPS.length)}
                     onContextMenu={(e) => { e.preventDefault(); setShowAssistant(false); }}
-                    className="absolute top-8 left-8 w-[200px] h-[200px] glass-panel-elevated p-4 flex flex-col items-center justify-center text-center gap-3 animate-float-around hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer group"
-                    style={{ animationDuration: '15s' }}
+                    className="absolute bottom-6 right-6 md:top-8 md:left-8 md:bottom-auto md:right-auto w-[200px] h-[200px] glass-panel-elevated p-4 flex flex-col items-center justify-center text-center gap-3 animate-fade-in hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer group"
                     title="Tap for next tip, Right-click to close"
                 >
                     <div className="w-10 h-10 rounded-full bg-accent-500/20 border border-accent-500/30 flex items-center justify-center animate-pulse-slow">

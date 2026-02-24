@@ -133,8 +133,8 @@ export default function QuickTools() {
                                                         key={opt.label}
                                                         onClick={() => setGridOverlay(opt.value)}
                                                         className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${gridOverlay === opt.value
-                                                                ? 'bg-accent-500 text-white border-accent-400 shadow-glow-accent'
-                                                                : 'bg-white/5 text-neutral-400 border-white/10 hover:bg-white/10 hover:text-white'
+                                                            ? 'bg-accent-500 text-white border-accent-400 shadow-glow-accent'
+                                                            : 'bg-white/5 text-neutral-400 border-white/10 hover:bg-white/10 hover:text-white'
                                                             }`}
                                                     >
                                                         {opt.label}
@@ -189,8 +189,8 @@ export default function QuickTools() {
                                     key={tab.key}
                                     onClick={() => setActiveChart(tab.key)}
                                     className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeChart === tab.key
-                                            ? 'bg-accent-500 text-white shadow-glow-accent'
-                                            : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                                        ? 'bg-accent-500 text-white shadow-glow-accent'
+                                        : 'text-neutral-400 hover:text-white hover:bg-white/10'
                                         }`}
                                 >
                                     {tab.label}
@@ -314,16 +314,6 @@ export default function QuickTools() {
                                 onClick={() => setSelectedTool('smpte-bars')}
                             />
                             <ToolCard
-                                title="Calibration Grid"
-                                subtitle="Custom Markers"
-                                icon={<IconGridCross />}
-                                onClick={() => {
-                                    setGridOverlay(null);
-                                    setMarkerColor('white');
-                                    setSelectedTool('calibration-grid');
-                                }}
-                            />
-                            <ToolCard
                                 title="Custom Image"
                                 subtitle="From Device"
                                 icon={<IconImage />}
@@ -394,13 +384,5 @@ const IconSMPTE = () => (
         <line x1="10" y1="4" x2="10" y2="20" />
         <line x1="14" y1="4" x2="14" y2="20" />
         <line x1="18" y1="4" x2="18" y2="20" />
-    </svg>
-);
-
-const IconGridCross = () => (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <path d="M12 3v18" />
-        <path d="M3 12h18" />
     </svg>
 );

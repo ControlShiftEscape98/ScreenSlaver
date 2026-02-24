@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My AI Skills Manual</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Syne:wght@700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --card: #16161f;
+            --border: #1e1e2e;
+            --accent1: #7c6af7;
+            --accent2: #e05cff;
+            --accent3: #00d4aa;
+            --accent4: #ff7c52;
+            --text: #e8e8f0;
+            --muted: #8888a8;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* ── COVER PAGE ── */
+        .cover {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px 40px;
+            background: radial-gradient(ellipse at 30% 20%, rgba(124, 106, 247, 0.25) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 80%, rgba(224, 92, 255, 0.2) 0%, transparent 60%),
+                var(--bg);
+            page-break-after: always;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 59px,
+                    rgba(255, 255, 255, 0.02) 60px), repeating-linear-gradient(90deg, transparent, transparent 59px,
+                    rgba(255, 255, 255, 0.02) 60px);
+            pointer-events: none;
+        }
+
+        .cover-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent1), var(--accent2));
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin-bottom: 32px;
+        }
+
+        .cover h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(42px, 8vw, 80px);
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, #a599ff 50%, #e05cff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .cover-sub {
+            font-size: 18px;
+            color: var(--muted);
+            max-width: 500px;
+            margin: 0 auto 48px;
+        }
+
+        .cover-stats {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cover-stat {
+            text-align: center;
+        }
+
+        .cover-stat-num {
+            font-family: 'Syne', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent1), var(--accent3));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .cover-stat-label {
+            font-size: 13px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .cover-date {
+            position: absolute;
+            bottom: 40px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* ── SECTIONS ── */
+        .section {
+            padding: 80px 60px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            margin-bottom: 48px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .section-label.brand {
+            color: var(--accent1);
+        }
+
+        .section-label.process {
+            color: var(--accent3);
+        }
+
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 12px;
+        }
+
+        .section-desc {
+            font-size: 16px;
+            color: var(--muted);
+            max-width: 600px;
+        }
+
+        /* ── SKILL CARDS ── */
+        .skill-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+
+        .skill-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .skill-card.brand-design::before {
+            background: linear-gradient(90deg, var(--accent1), var(--accent2));
+        }
+
+        .skill-card.brand-identity::before {
+            background: linear-gradient(90deg, #e05cff, #ff7c52);
+        }
+
+        .skill-card.business-brain::before {
+            background: linear-gradient(90deg, #ff7c52, #ffc654);
+        }
+
+        .skill-card.design-arch::before {
+            background: linear-gradient(90deg, var(--accent3), var(--accent1));
+        }
+
+        .skill-card.brainstorming::before {
+            background: linear-gradient(90deg, var(--accent3), #4af0c8);
+        }
+
+        .skill-card.writing-plans::before {
+            background: linear-gradient(90deg, #4af0c8, var(--accent1));
+        }
+
+        .skill-card.debugging::before {
+            background: linear-gradient(90deg, #ff6b6b, #ff7c52);
+        }
+
+        .skill-card.tdd::before {
+            background: linear-gradient(90deg, #61efad, var(--accent3));
+        }
+
+        .skill-card.subagent::before {
+            background: linear-gradient(90deg, var(--accent1), #4af0c8);
+        }
+
+        .skill-card.worktrees::before {
+            background: linear-gradient(90deg, #ffc654, #ff7c52);
+        }
+
+        .skill-card.code-review::before {
+            background: linear-gradient(90deg, #a599ff, var(--accent2));
+        }
+
+        .skill-card.finishing::before {
+            background: linear-gradient(90deg, var(--accent3), #61efad);
+        }
+
+        .skill-card.dispatching::before {
+            background: linear-gradient(90deg, #ff7c52, #e05cff);
+        }
+
+        .skill-card.writing-skills::before {
+            background: linear-gradient(90deg, #ffc654, #61efad);
+        }
+
+        .skill-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .skill-icon {
+            font-size: 32px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .skill-meta {
+            flex: 1;
+        }
+
+        .skill-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 4px;
+        }
+
+        .skill-code {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--muted);
+            text-transform: uppercase;
+            font-family: monospace;
+        }
+
+        .skill-tagline {
+            font-size: 17px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 16px;
+            border-left: 3px solid var(--accent1);
+            padding-left: 14px;
+        }
+
+        .skill-body {
+            font-size: 15px;
+            color: #b0b0cc;
+            line-height: 1.75;
+            margin-bottom: 20px;
+        }
+
+        .say-box {
+            background: rgba(124, 106, 247, 0.08);
+            border: 1px solid rgba(124, 106, 247, 0.2);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-top: 16px;
+        }
+
+        .say-box-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent1);
+            margin-bottom: 8px;
+        }
+
+        .say-examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .say-tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 13px;
+            color: var(--text);
+            font-style: italic;
+        }
+
+        .triggers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .trigger-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .trigger-auto {
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.25);
+            color: var(--accent3);
+        }
+
+        .trigger-manual {
+            background: rgba(124, 106, 247, 0.1);
+            border: 1px solid rgba(124, 106, 247, 0.25);
+            color: var(--accent1);
+        }
+
+        /* ── HOW IT CONNECTS ── */
+        .flow-section {
+            padding: 80px 60px;
+            max-width: 900px;
+            margin: 0 auto;
+            page-break-before: always;
+        }
+
+        .flow-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 8px;
+        }
+
+        .flow-sub {
+            color: var(--muted);
+            margin-bottom: 40px;
+        }
+
+        .flow-steps {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .flow-steps::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent1), var(--accent3));
+            border-radius: 2px;
+        }
+
+        .flow-step {
+            position: relative;
+            margin-bottom: 28px;
+            padding: 20px 24px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            left: -27px;
+            top: 24px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent1);
+            border: 2px solid var(--bg);
+        }
+
+        .flow-step-num {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--accent1);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .flow-step-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 4px;
+        }
+
+        .flow-step-desc {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .flow-step-skill {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent3);
+            background: rgba(0, 212, 170, 0.08);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+
+        /* ── CHEATSHEET ── */
+        .cheat-section {
+            padding: 80px 60px;
+            max-width: 900px;
+            margin: 0 auto;
+            page-break-before: always;
+        }
+
+        .cheat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .cheat-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 18px;
+        }
+
+        .cheat-phrase {
+            font-size: 13px;
+            font-style: italic;
+            color: #a0a0c8;
+            margin-bottom: 6px;
+        }
+
+        .cheat-arrow {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .cheat-skill {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--white);
+        }
+
+        /* ── DIVIDER ── */
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* ── PRINT ── */
+        @media print {
+            body {
+                background: #0a0a0f;
+            }
+
+            .cover {
+                min-height: 100vh;
+                page-break-after: always;
+            }
+
+            .skill-card {
+                page-break-inside: avoid;
+            }
+        }
+
+        @media screen {
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ────────── COVER ────────── -->
+    <div class="cover">
+        <div class="cover-badge">Personal Reference Guide</div>
+        <h1>My AI Skills<br>Manual</h1>
+        <p class="cover-sub">A plain-language guide to every skill I've collected — what they are, when to use them, and
+            how to ask for them.</p>
+        <div class="cover-stats">
+            <div class="cover-stat">
+                <div class="cover-stat-num">4</div>
+                <div class="cover-stat-label">Brand Skills</div>
+            </div>
+            <div class="cover-stat">
+                <div class="cover-stat-num">15</div>
+                <div class="cover-stat-label">Process Skills</div>
+            </div>
+            <div class="cover-stat">
+                <div class="cover-stat-num">19</div>
+                <div class="cover-stat-label">Total Skills</div>
+            </div>
+        </div>
+        <div class="cover-date">Created February 2026 · AI_SUPERPOWERS folder</div>
+    </div>
+
+    <!-- ────────── PART 1: YOUR BRAND SKILLS ────────── -->
+    <div class="section">
+        <div class="section-header">
+            <div class="section-label brand">Part 1 of 3 · Your Custom Skills</div>
+            <div class="section-title">Brand & Business Skills</div>
+            <div class="section-desc">These are skills YOU created, specific to your brand and business. They make me
+                remember your visual style, your brand voice, and your business strategy — so you never have to
+                re-explain it.</div>
+        </div>
+
+        <!-- BRAND-IDENTITY -->
+        <div class="skill-card brand-identity">
+            <div class="skill-header">
+                <div class="skill-icon">💎</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Brand Identity — Glido</div>
+                    <div class="skill-code">brand-identity</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Your master brand rulebook for Glido, fully loaded.</div>
+            <div class="skill-body">
+                This is the definitive reference for everything visual and verbal about Glido. It holds your exact color
+                palette, fonts, spacing values, coding standards for components, and the Glido voice & tone. Whenever
+                I'm building something for Glido — a UI, copy, a component — I read this skill first so everything stays
+                on-brand automatically.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Build a hero section for Glido"</span>
+                    <span class="say-tag">"Write the onboarding copy for Glido"</span>
+                    <span class="say-tag">"Make a card component that matches our brand"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers when you mention Glido + design/copy</span>
+            </div>
+        </div>
+
+        <!-- BRAND-DESIGN -->
+        <div class="skill-card brand-design">
+            <div class="skill-header">
+                <div class="skill-icon">🎨</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Brand Design (Template)</div>
+                    <div class="skill-code">brand-design</div>
+                </div>
+            </div>
+            <div class="skill-tagline">A blank brand rulebook — ready to fill for any new brand.</div>
+            <div class="skill-body">
+                This is the reusable template version of brand-identity. Think of it as the empty mold you pour a new
+                brand into. If you start a second business or client project, you'd fill this template with their
+                colors, fonts, voice, and tech stack to create a new, dedicated brand skill — just like we made
+                brand-identity for Glido.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Let's set up a brand skill for my new project"</span>
+                    <span class="say-tag">"Create a brand identity for [new client name]"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-manual">✋ Manual — used when starting a new brand from scratch</span>
+            </div>
+        </div>
+
+        <!-- DESIGN-ARCHITECT -->
+        <div class="skill-card design-arch">
+            <div class="skill-header">
+                <div class="skill-icon">🏛️</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Ultimate Design Architect</div>
+                    <div class="skill-code">design-architect</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Transforms a rough idea into a full, professional design system.</div>
+            <div class="skill-body">
+                This is your most powerful visual skill. It has a "Reasoning Engine" that maps your project to one of
+                100+ industry types (SaaS, healthcare, e-commerce, etc.) and then generates the right design style,
+                color mood, layout pattern and typography for it. It then builds a complete design system document
+                (MASTER.md) and implements everything following 5 dimensions: Layout, Aesthetic Style, Colors,
+                Typography, and Animations. The result is a premium, production-ready UI — not a generic template.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Design the full app UI for my SaaS"</span>
+                    <span class="say-tag">"Build me a premium landing page"</span>
+                    <span class="say-tag">"Create the design system for this project"</span>
+                    <span class="say-tag">"Make this look like a top-tier product"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers on any UI/UX design request</span>
+            </div>
+        </div>
+
+        <!-- BUSINESS-BRAIN -->
+        <div class="skill-card business-brain">
+            <div class="skill-header">
+                <div class="skill-icon">🧠</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Business Brain</div>
+                    <div class="skill-code">business-brain</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Turns your project into a real, scalable business on paper.</div>
+            <div class="skill-body">
+                This skill thinks like a business strategist. It asks you questions to understand your customer, your
+                problem, and your vision — then it creates your "Business DNA" document. It maps out your monetization
+                model (SaaS? Transactional? Marketplace?), your competitive edge, and how this business could grow into
+                something bigger over time (the "Fractal Architecture"). The result is a business design document that
+                makes everything that comes next — the product, the copy, the strategy — much more intentional.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"How should I monetize this app?"</span>
+                    <span class="say-tag">"Help me figure out my business model"</span>
+                    <span class="say-tag">"Create my Business DNA document"</span>
+                    <span class="say-tag">"How does this scale into something bigger?"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers on business/monetization questions</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────── PART 2: PROCESS SKILLS ────────── -->
+    <div class="page-break"></div>
+    <div class="section">
+        <div class="section-header">
+            <div class="section-label process">Part 2 of 4 · Superpowers Library</div>
+            <div class="section-title">Engineering Process Skills</div>
+            <div class="section-desc">These skills (from the open-source Superpowers library) make me work the right way
+                — methodically, safely, and efficiently. They trigger automatically based on what you're asking me to
+                do.</div>
+        </div>
+
+        <!-- BRAINSTORMING -->
+        <div class="skill-card brainstorming">
+            <div class="skill-header">
+                <div class="skill-icon">💡</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Brainstorming</div>
+                    <div class="skill-code">brainstorming</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Stops me from building the wrong thing by asking first.</div>
+            <div class="skill-body">
+                Before I write a single line of code, this skill makes me slow down and ask you questions — one at a
+                time — to fully understand what you actually want. It will offer 2-3 different approaches, explain the
+                trade-offs, show you the plan in sections, and get your approval before moving forward. The goal: make
+                sure we're solving the right problem, not just any problem.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"I want to add a new feature"</span>
+                    <span class="say-tag">"Help me plan this"</span>
+                    <span class="say-tag">"I have an idea, where do we start?"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers before any new feature or build</span>
+            </div>
+        </div>
+
+        <!-- WRITING PLANS -->
+        <div class="skill-card writing-plans">
+            <div class="skill-header">
+                <div class="skill-icon">📋</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Writing Plans</div>
+                    <div class="skill-code">writing-plans</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Breaks approved ideas into a step-by-step build checklist.</div>
+            <div class="skill-body">
+                Once you approve a design from brainstorming, this skill creates a detailed implementation plan — a
+                numbered list of tiny, 2-5 minute tasks, each with exact file paths, code snippets, and test commands.
+                Think of it as a recipe. Nothing is vague. Every ingredient is listed. This makes the actual building
+                phase fast and accurate.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Looks good, let's plan it out"</span>
+                    <span class="say-tag">"Write the implementation plan"</span>
+                    <span class="say-tag">"Break this into tasks"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers right after a brainstorming session</span>
+            </div>
+        </div>
+
+        <!-- SUBAGENT-DRIVEN DEVELOPMENT -->
+        <div class="skill-card subagent">
+            <div class="skill-header">
+                <div class="skill-icon">🤖</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Subagent-Driven Development</div>
+                    <div class="skill-code">subagent-driven-development</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Runs the build plan automatically with quality checks at every step.</div>
+            <div class="skill-body">
+                Once the plan is written, this skill executes it. It launches fresh mini-agents for each task so they
+                don't get confused by earlier steps, then runs two back-to-back reviews: one checking that the work
+                matches the spec, and one checking that the code quality is good. Only when both reviewers say "✅
+                approved" does it move to the next task. This is what lets me work autonomously for long stretches
+                without going off the rails.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Go ahead and build it"</span>
+                    <span class="say-tag">"Execute the plan"</span>
+                    <span class="say-tag">"Let's go, start building"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers after a plan is approved</span>
+            </div>
+        </div>
+
+        <!-- TEST-DRIVEN DEVELOPMENT -->
+        <div class="skill-card tdd">
+            <div class="skill-header">
+                <div class="skill-icon">🧪</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Test-Driven Development (TDD)</div>
+                    <div class="skill-code">test-driven-development</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Writes tests before code so bugs get caught immediately.</div>
+            <div class="skill-body">
+                This skill enforces a strict rule: write a failing test first, watch it fail, then write the minimum
+                code to make it pass. The test has to actually fail — otherwise it proves nothing. This catches bugs
+                immediately rather than a week later in production. It also means every single feature has a test that
+                proves it works, forever.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">(No prompt needed — runs automatically inside the build)</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers during every build task</span>
+            </div>
+        </div>
+
+        <!-- SYSTEMATIC DEBUGGING -->
+        <div class="skill-card debugging">
+            <div class="skill-header">
+                <div class="skill-icon">🔍</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Systematic Debugging</div>
+                    <div class="skill-code">systematic-debugging</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Finds the real cause of a bug instead of guessing.</div>
+            <div class="skill-body">
+                When something breaks, this skill stops me from just randomly trying fixes. Instead it follows 4 strict
+                phases: (1) investigate and find the root cause, (2) compare working vs broken code, (3) form one
+                specific theory and test it minimally, (4) fix only that one thing. The stats behind this: systematic
+                approach = 15-30 min. Random guessing = 2-3 hours of wasted work.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Something is broken"</span>
+                    <span class="say-tag">"This isn't working, can you fix it?"</span>
+                    <span class="say-tag">"I'm getting an error"</span>
+                    <span class="say-tag">"The deployment failed again"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers on any bug, error or failure</span>
+            </div>
+        </div>
+
+        <!-- USING GIT WORKTREES -->
+        <div class="skill-card worktrees">
+            <div class="skill-header">
+                <div class="skill-icon">🌿</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Using Git Worktrees</div>
+                    <div class="skill-code">using-git-worktrees</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Creates a safe sandbox so new features never break your main code.</div>
+            <div class="skill-body">
+                Before building anything, this skill creates a separate isolated workspace from your main codebase
+                called a "worktree". Think of it like making a copy of your kitchen before trying an experimental recipe
+                — if the experiment goes wrong, your original kitchen is untouched. When the feature is done and tested,
+                it merges cleanly back in.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Start a new feature branch"</span>
+                    <span class="say-tag">"Let's work on this without touching main"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers after a design is approved</span>
+            </div>
+        </div>
+
+        <!-- REQUESTING CODE REVIEW -->
+        <div class="skill-card code-review">
+            <div class="skill-header">
+                <div class="skill-icon">👁️</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Requesting & Receiving Code Review</div>
+                    <div class="skill-code">requesting-code-review · receiving-code-review</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Makes sure finished work is actually good before saying "done".</div>
+            <div class="skill-body">
+                These two paired skills handle quality control. "Requesting" runs a pre-review checklist before handing
+                off work — does it match the spec? are tests green? is anything missing? "Receiving" handles feedback —
+                critical issues block everything until fixed, minor ones are noted. Together they create a built-in
+                review loop that catches problems before they reach you.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Review your own work before showing me"</span>
+                    <span class="say-tag">"Run a code review"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers between build tasks</span>
+            </div>
+        </div>
+
+        <!-- FINISHING A BRANCH -->
+        <div class="skill-card finishing">
+            <div class="skill-header">
+                <div class="skill-icon">🏁</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Finishing a Development Branch</div>
+                    <div class="skill-code">finishing-a-development-branch</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Cleanly wraps up a feature and presents your options.</div>
+            <div class="skill-body">
+                When all tasks are done, this skill verifies all tests pass, then gives you a clear choice: merge it
+                into your main code, open a Pull Request, keep the branch for later, or discard it. It cleans up the
+                worktree and leaves your project in a tidy state. No loose ends.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"We're done, wrap it up"</span>
+                    <span class="say-tag">"Merge this into main"</span>
+                    <span class="say-tag">"Task complete, what's next?"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers when all plan tasks are complete</span>
+            </div>
+        </div>
+
+        <!-- DISPATCHING PARALLEL AGENTS -->
+        <div class="skill-card dispatching">
+            <div class="skill-header">
+                <div class="skill-icon">⚡</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Dispatching Parallel Agents</div>
+                    <div class="skill-code">dispatching-parallel-agents</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Runs multiple independent tasks simultaneously to save time.</div>
+            <div class="skill-body">
+                When a plan has tasks that don't depend on each other (e.g., "build the login page" and "build the
+                settings page" can happen at the same time), this skill launches multiple sub-agents to work in
+                parallel. Instead of doing things one after another, multiple things happen at once. Dramatically cuts
+                down build time on large features.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Do all of these simultaneously"</span>
+                    <span class="say-tag">"Can you parallelize this?"</span>
+                    <span class="say-tag">"Run these tasks at the same time"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-manual">✋ Manual — you need to ask for it explicitly</span>
+            </div>
+        </div>
+
+        <!-- PINECONE VECTOR MEMORY -->
+        <div class="skill-card memory" style="border-color: rgba(30,215,96,0.3);">
+            <div
+                style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1ed760,#24b47e,#1db954);">
+            </div>
+            <div class="skill-header">
+                <div class="skill-icon">🌲</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Vector Memory (Pinecone)</div>
+                    <div class="skill-code">vector-memory-pinecone</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Semantic Memory & Search — compression that makes me smarter.</div>
+            <div class="skill-body">
+                This skill provides long-term semantic memory. It uses Pinecone to store and retrieve
+                "embeddings"—numeric representations of meaning. This allows for Retrieval Augmented Generation (RAG),
+                lightning-fast semantic search through millions of data points, and context-aware grounding. It handles
+                data chunking, hybrid search patterns, and automated memory management across Python and TypeScript.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Add long-term memory to this app using Pinecone"</span>
+                    <span class="say-tag">"Build a RAG pipeline for these documents"</span>
+                    <span class="say-tag">"Use semantic search to find relevant context"</span>
+                    <span class="say-tag">"Store this project's history in vector memory"</span>
+                    <span class="say-tag">"How can we use Pinecone for data compression?"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers on "memory", "semantic search", and "RAG" requests</span>
+            </div>
+            <div
+                style="margin-top:14px; padding:12px 16px; background:rgba(30,215,96,0.06); border:1px solid rgba(30,215,96,0.15); border-radius:8px;">
+                <div
+                    style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1ed760;margin-bottom:8px;">
+                    📁 Resource Files</div>
+                <div style="font-size:12px;color:#a0a0c8;line-height:1.9;">
+                    client-templates.md · rag-patterns.md · memory-management.md
+                </div>
+            </div>
+        </div>
+
+        <!-- ERROR HANDLING -->
+        <div class="skill-card debugging" style="border-color: rgba(255,107,107,0.3);">
+            <div
+                style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#ff6b6b,#ff7c52,#ffc654);">
+            </div>
+            <div class="skill-header">
+                <div class="skill-icon">🩹</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Error Handling Patterns</div>
+                    <div class="skill-code">error-handling-patterns</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Heals broken code — finds, handles, and recovers from errors the right way.</div>
+            <div class="skill-body">
+                This skill makes your apps resilient. Instead of crashing or silently failing, they catch problems
+                gracefully, explain what went wrong clearly, and recover when possible. It covers: custom error
+                hierarchies (Python, TypeScript, Rust, Go), retry logic with exponential backoff, circuit breakers that
+                stop cascading failures, async error handling, graceful degradation, and how to write error messages
+                that actually help. Every error gets handled at the right level — predictable, debuggable,
+                production-ready.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"The app is crashing with an unhandled error"</span>
+                    <span class="say-tag">"Add proper error handling to this API"</span>
+                    <span class="say-tag">"The payment service keeps timing out"</span>
+                    <span class="say-tag">"Make this more resilient to failures"</span>
+                    <span class="say-tag">"Write better error messages for this feature"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers on errors, crashes, and resilience requests</span>
+            </div>
+            <div
+                style="margin-top:14px; padding:12px 16px; background:rgba(255,107,107,0.06); border:1px solid rgba(255,107,107,0.15); border-radius:8px;">
+                <div
+                    style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ff8a8a;margin-bottom:8px;">
+                    📁 Resource Files</div>
+                <div style="font-size:12px;color:#a0a0c8;line-height:1.9;">
+                    exception-hierarchy-design.md · error-recovery-strategies.md<br>
+                    async-error-handling.md · error-handling-checklist.md · error-message-guide.md
+                </div>
+            </div>
+        </div>
+
+        <!-- WRITING SKILLS -->
+        <div class="skill-card writing-skills">
+            <div class="skill-header">
+                <div class="skill-icon">✍️</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Writing Skills (Meta)</div>
+                    <div class="skill-code">writing-skills</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Teaches me how to create new skills correctly.</div>
+            <div class="skill-body">
+                This is the manual for building new skills — the one that explains the format, the file structure, how
+                to write descriptions that trigger correctly, and how to test that a skill actually works. It's the
+                skill that made all the other skills possible. You'll use this whenever you want to add a new skill to
+                your collection.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Create a new skill for [topic]"</span>
+                    <span class="say-tag">"Help me build a skill for copywriting"</span>
+                    <span class="say-tag">"I want to add a new skill to my library"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-manual">✋ Manual — only when creating new skills</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────── PART 3: THE SECOND BRAIN ────────── -->
+    <div class="page-break"></div>
+    <div class="section">
+        <div class="section-header">
+            <div class="section-label process" style="color: var(--accent2);">Part 3 of 4 · Brain Infrastructure</div>
+            <div class="section-title">The Second Brain</div>
+            <div class="section-desc">These tools power my long-term memory of your entire skills collection, allowing
+                me to search and acquire new capabilities instantly.</div>
+        </div>
+
+        <!-- SECOND BRAIN INDEXER -->
+        <div class="skill-card finishing" style="border-color: var(--accent2);">
+            <div class="skill-header">
+                <div class="skill-icon">🧠</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Second Brain Indexer</div>
+                    <div class="skill-code">scripts/index_brain.py</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Registers every skill you own into my long-term memory.</div>
+            <div class="skill-body">
+                This script scans your skills folders, breaks the content into searchable chunks, and uploads them to
+                our Pinecone vector index. It ensures that even if I have hundreds of skills, I can find the exact one
+                you need in milliseconds. It turns your documentation into an active, searchable brain.
+            </div>
+            <div class="triggers">
+                <span class="trigger-manual">✋ Manual — run after adding new local skills</span>
+            </div>
+        </div>
+
+        <!-- SEMANTIC SEARCH -->
+        <div class="skill-card branding" style="border-color: var(--accent3);">
+            <div
+                style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg, var(--accent3), var(--accent1));">
+            </div>
+            <div class="skill-header">
+                <div class="skill-icon">🔍</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Semantic Skill Lookup</div>
+                    <div class="skill-code">scripts/query_brain.py</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Find the right skill using natural language, not keywords.</div>
+            <div class="skill-body">
+                Instead of remembering file names, you can just ask "how do I handle errors?" or "how do I design a
+                SaaS?". This tool searches the Second Brain and retrieves the most relevant skill patterns immediately.
+                It's the primary way I stay grounded in your specific engineering and design standards.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Find a skill for [topic]"</span>
+                    <span class="say-tag">"Search the brain for [question]"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers when searching for unknown capabilities</span>
+            </div>
+        </div>
+
+        <!-- REMOTE ACQUISITION -->
+        <div class="skill-card worktrees" style="border-color: var(--accent4);">
+            <div
+                style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg, var(--accent4), var(--accent2));">
+            </div>
+            <div class="skill-header">
+                <div class="skill-icon">🌐</div>
+                <div class="skill-meta">
+                    <div class="skill-name">Remote Resource Acquisition</div>
+                    <div class="skill-code">remote-resource-acquisition</div>
+                </div>
+            </div>
+            <div class="skill-tagline">Pulls new skills and docs from the internet safely.</div>
+            <div class="skill-body">
+                This skill automates downloading and extracting information from GitHub, Zip files, or web pages. It
+                handles the "dirty work" of fetching content, unzipping patterns, and moving them into your `Skills
+                Master`. It also includes a strict **Permission Policy** — it will always ask for your "Yes" before
+                installing or updating anything.
+            </div>
+            <div class="say-box">
+                <div class="say-box-label">💬 You might say…</div>
+                <div class="say-examples">
+                    <span class="say-tag">"Download the skills from [URL]"</span>
+                    <span class="say-tag">"Ingest this repository into my brain"</span>
+                </div>
+            </div>
+            <div class="triggers">
+                <span class="trigger-auto">🤖 Auto-triggers on any URL shared for acquisition</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────── PART 4: FLOW + CHEATSHEET ────────── -->
+    <div class="flow-section">
+        <div class="section-header"
+            style="padding-bottom:24px; border-bottom: 1px solid var(--border); margin-bottom:48px;">
+            <div class="section-label process">Part 4 of 4</div>
+            <div class="section-title">How It All Flows Together</div>
+            <div class="section-desc">This is the natural order skills activate when you start something new.</div>
+        </div>
+
+        <div class="flow-steps">
+            <div class="flow-step">
+                <div class="flow-step-num">Step 01</div>
+                <div class="flow-step-title">You have a rough idea</div>
+                <div class="flow-step-desc">You describe what you want in plain language. I ask clarifying questions one
+                    at a time.</div>
+                <span class="flow-step-skill">brainstorming</span>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-num">Step 02</div>
+                <div class="flow-step-title">We define the design together</div>
+                <div class="flow-step-desc">I present 2-3 approaches, you pick one, we agree on the plan. I save the
+                    design doc.</div>
+                <span class="flow-step-skill">brainstorming → writing-plans</span>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-num">Step 03</div>
+                <div class="flow-step-title">Safe workspace is created</div>
+                <div class="flow-step-desc">A separate branch is made so the build never touches your working code.
+                </div>
+                <span class="flow-step-skill">using-git-worktrees</span>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-num">Step 04</div>
+                <div class="flow-step-title">Build begins, task by task</div>
+                <div class="flow-step-desc">Mini-agents handle each task, writing tests first, then code. Reviewers
+                    check every task before moving on.</div>
+                <span class="flow-step-skill">subagent-driven-development + test-driven-development</span>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-num">Step 05</div>
+                <div class="flow-step-title">Something breaks? Debugging kicks in</div>
+                <div class="flow-step-desc">No random guessing. Root cause is found first, then one precise fix is
+                    applied.</div>
+                <span class="flow-step-skill">systematic-debugging</span>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-num">Step 06</div>
+                <div class="flow-step-title">Feature complete — wrap it up</div>
+                <div class="flow-step-desc">All tests pass. You choose: merge, PR, keep, or discard. Clean finish every
+                    time.</div>
+                <span class="flow-step-skill">finishing-a-development-branch</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ────────── CHEATSHEET ────────── -->
+    <div class="cheat-section">
+        <div class="section-header"
+            style="padding-bottom:24px; border-bottom: 1px solid var(--border); margin-bottom:40px;">
+            <div class="section-label brand">Quick Reference</div>
+            <div class="section-title">What To Say & When</div>
+            <div class="section-desc">Copy these or use your own words — the skills trigger based on your intent, not
+                exact phrases.</div>
+        </div>
+        <div class="cheat-grid">
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Build me a Glido landing page"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">brand-identity + design-architect</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"I have a new feature idea"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">brainstorming → writing-plans</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Something is broken / I have an error"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">systematic-debugging</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"How should I monetize this?"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">business-brain</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"OK, I approve the plan. Go build it."</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">subagent-driven-development</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Write the copy for this button/page"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">brand-identity (voice-tone)</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Create a skill for [new topic]"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">writing-skills</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Design a premium UI for my app"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">design-architect</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"We're done, merge it in"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">finishing-a-development-branch</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Do these tasks at the same time"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">dispatching-parallel-agents</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Set up a brand for my new project"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">brand-design (template)</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"How does this business scale?"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">business-brain (fractal architecture)</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Search for skills about [topic]"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">scripts/query_brain.py</div>
+            </div>
+            <div class="cheat-item">
+                <div class="cheat-phrase">"Download the docs from this URL"</div>
+                <div class="cheat-arrow">↓ triggers</div>
+                <div class="cheat-skill">remote-resource-acquisition</div>
+            </div>
+        </div>
+
+        <div
+            style="margin-top: 60px; padding: 28px 32px; background: linear-gradient(135deg, rgba(124,106,247,0.12), rgba(0,212,170,0.08)); border: 1px solid rgba(124,106,247,0.25); border-radius: 16px; text-align: center;">
+            <div style="font-size: 28px; margin-bottom: 12px;">🚀</div>
+            <div
+                style="font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: white; margin-bottom: 8px;">
+                The Most Important Thing to Remember</div>
+            <div style="font-size: 15px; color: #a0a0c8; max-width: 550px; margin: 0 auto;">Just talk naturally.
+                Describe what you want in your own words. The skills trigger automatically based on what you're asking
+                for. You don't need to say "use skill X" — your natural language is enough.</div>
+        </div>
+    </div>
+
+</body>
+
+</html>

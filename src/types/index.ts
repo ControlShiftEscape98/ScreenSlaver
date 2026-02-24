@@ -19,7 +19,12 @@ export interface DeviceState {
     currentApp: 'home' | 'lock' | 'call' | 'messages' | 'notification' | 'alarm' | 'idle' | 'custom' | 'keyboard';
     typedText: string;        // Text for keyboard simulation
     wallpaper: string;        // URL or preset key
+    themeMode: 'light' | 'dark';
+    themeColor: string;       // Hex color for OS accents
     skin: string;             // Visual skin identifier
+    keyboardColor?: string;   // Custom hex for keyboard
+    iconStyle?: 'classic' | 'vibrant' | 'tech' | 'social';
+    fontScale?: number;       // 0.8 to 1.2
     language: string;
     screenLocked: boolean;    // Controller lock — prevents touch on receiver
     displayTool: QuickToolType | null;        // Quick tool pushed from controller
@@ -49,29 +54,40 @@ export type CueType =
     | 'alarm'         // Alarm / timer
     | 'home'          // Switch to home screen
     | 'lock'          // Switch to lock screen
-    | 'idle';         // Idle / sleep state
+    | 'idle'          // Idle / sleep state
+    | 'loading'       // Suspense loading bar
+    | 'terminal'      // Hacker terminal code
+    | 'video'         // Video call / surveillance
+    | 'error';        // System error overlay
 
-export interface CueCallData {
-    contactName: string;   // e.g., "Mom"
-    phoneNumber: string;   // e.g., "+1 555 3456"
-}
-
-export interface CueTextData {
-    contactName: string;
-    message: string;
+export interface CueData {
+    // Phone & Communication
+    contactName?: string;
     phoneNumber?: string;
-}
+    messageBody?: string;
 
-export interface CueNotificationData {
-    appName: string;
-    title: string;
-    body: string;
-    icon?: string;
-}
+    // Media & UI overrides
+    imageUrl?: string;
+    videoUrl?: string;
 
-export interface CueAlarmData {
-    label: string;
-    time: string;
+    // Customization (Base44 style)
+    title?: string;
+    subtitle?: string;
+    colorHex?: string;
+
+    // Loading Bar
+    loadingSpeed?: 'slow' | 'normal' | 'fast';
+    loadingText?: string;
+
+    // Terminal
+    terminalCode?: string;
+
+    // Social & News
+    socialPlatform?: 'instagram' | 'twitter' | 'generic';
+    socialHandle?: string;
+
+    // Generic
+    customJson?: Record<string, any>;
 }
 
 export interface Cue {
@@ -79,7 +95,7 @@ export interface Cue {
     name: string;           // e.g., "SOS Sam's Mum"
     type: CueType;
     target: CueTarget;
-    data: CueCallData | CueTextData | CueNotificationData | CueAlarmData | null;
+    data: CueData | null;
     delay: number;          // Delay in ms before execution
     duration: number;       // How long the cue stays active (ms), 0 = indefinite
     order: number;          // Position in the cue stack
@@ -88,8 +104,9 @@ export interface Cue {
 }
 
 export interface CueTarget {
-    mode: 'device' | 'group';
+    mode: 'all' | 'device' | 'group' | 'multi-device';
     deviceId?: string;
+    deviceIds?: string[];
     groupName?: string;
 }
 
@@ -133,7 +150,6 @@ export type QuickToolType =
     | 'color-chart-chromadumonde'
     | 'color-chart-colorchecker'
     | 'grayscale-wedge'
-    | 'calibration-grid'
     | 'smpte-bars'
     | 'custom-image';
 
@@ -191,7 +207,12 @@ export const createDefaultDeviceState = (): DeviceState => ({
     currentApp: 'lock',
     typedText: '',
     wallpaper: '',
+    themeMode: 'dark',
+    themeColor: '#0ea5e9',    // Default iOS blue/accent
     skin: 'ios',
+    keyboardColor: '#aeb3bc', // Default grey 
+    iconStyle: 'classic',
+    fontScale: 1.0,
     language: 'en',
     screenLocked: false,
     displayTool: null,
@@ -199,19 +220,21 @@ export const createDefaultDeviceState = (): DeviceState => ({
     displayToolMarkers: null,
 });
 
-export const createDefaultCue = (overrides?: Partial<Cue>): Cue => ({
-    id: crypto.randomUUID(),
-    name: 'New Cue',
-    type: 'incoming',
-    target: { mode: 'device' },
-    data: null,
-    delay: 0,
-    duration: 0,
-    order: 0,
-    color: '#f97316',
-    fired: false,
-    ...overrides,
-});
+export function createDefaultCue(overrides?: Partial<Cue>): Cue {
+    return {
+        id: crypto.randomUUID(),
+        name: 'New Cue',
+        type: 'incoming',
+        target: { mode: 'all' },
+        data: null,
+        delay: 0,
+        duration: 0,
+        color: '#f97316',
+        fired: false,
+        order: 0,
+        ...overrides
+    };
+}
 
 export const createDefaultSession = (code: string, name: string): Session => ({
     id: crypto.randomUUID(),

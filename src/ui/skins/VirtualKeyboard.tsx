@@ -5,6 +5,7 @@ interface VirtualKeyboardProps {
     onDelete?: () => void;
     onEnter?: () => void;
     theme?: 'ios' | 'android';
+    keyboardColor?: string;
 }
 
 const KEYS_IOS = [
@@ -14,8 +15,23 @@ const KEYS_IOS = [
     ['123', 'space', 'return']
 ];
 
-export default function VirtualKeyboard({ onType, onDelete, onEnter, theme = 'ios' }: VirtualKeyboardProps) {
+const KEYS_ANDROID = [
+    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+    ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
+    ['?123', ',', 'space', '.', 'return']
+];
+
+export default function VirtualKeyboard({ onType, onDelete, onEnter, theme = 'ios', keyboardColor }: VirtualKeyboardProps) {
     const [activeKey, setActiveKey] = useState<string | null>(null);
+    const isIOS = theme === 'ios';
+    const keys = isIOS ? KEYS_IOS : KEYS_ANDROID;
+
+    // Default colors if not provided
+    const defaultKeyColor = isIOS ? '#AEB3BC' : '#CFD8DC';
+    const defaultRegularKeyColor = isIOS ? '#FFFFFF' : '#F5F5F5';
+    const effectiveKeyColor = keyboardColor || defaultKeyColor;
+    const effectiveRegularKeyColor = keyboardColor || defaultRegularKeyColor;
 
     const handleTouchStart = (key: string) => {
         setActiveKey(key);
@@ -30,41 +46,45 @@ export default function VirtualKeyboard({ onType, onDelete, onEnter, theme = 'io
     };
 
     return (
-        <div className={`w-full bg-[#d1d5db] pt-2 pb-6 px-1 select-none animate-slide-up ${theme === 'android' ? 'bg-[#ECEFF1]' : ''}`}>
-            {KEYS_IOS.map((row, rIdx) => (
-                <div key={rIdx} className="flex justify-center w-full mb-3 gap-1.5">
+        <div className={`w-full h-full pt-2 pb-6 px-1 select-none flex flex-col justify-end transition-colors ${isIOS ? 'bg-[#d1d5db]' : 'bg-[#ECEFF1]'}`}>
+            {keys.map((row, rIdx) => (
+                <div key={rIdx} className="flex justify-center w-full mb-2 gap-1 px-1">
                     {row.map((key) => {
-                        const isSpecial = key.length > 1;
+                        const isSpecial = key.length > 1 && key !== 'space';
                         const isActive = activeKey === key;
 
-                        let width = 'w-[8.5%]'; // default
-                        if (key === 'space') width = 'w-[50%]';
-                        if (key === 'return' || key === '123') width = 'w-[20%]';
-                        if (key === 'shift' || key === 'backspace') width = 'w-[12%]';
+                        let width = 'flex-1';
+                        if (key === 'space') width = 'flex-[4]';
+                        if (key === 'return' || key === '?123' || key === '123') width = 'flex-[1.5]';
+                        if (key === 'shift' || key === 'backspace') width = 'flex-[1.2]';
 
                         return (
                             <button
                                 key={key}
-                                onTouchStart={() => handleTouchStart(key)}
+                                onTouchStart={(e) => { e.preventDefault(); handleTouchStart(key); }}
                                 onTouchEnd={handleTouchEnd}
-                                onMouseDown={() => handleTouchStart(key)}
+                                onMouseDown={(e) => { e.preventDefault(); handleTouchStart(key); }}
                                 onMouseUp={handleTouchEnd}
                                 onMouseLeave={handleTouchEnd}
                                 className={`
-                                    h-11 rounded-md text-xl font-normal shadow-sm transition-colors duration-75 flex items-center justify-center
+                                    h-12 flex items-center justify-center text-xl transition-all duration-75 shadow-sm
                                     ${width}
-                                    ${isSpecial ? 'bg-[#aeb3bc] text-black/80' : 'bg-white text-black'}
-                                    ${isActive ? (isSpecial ? 'bg-white' : 'bg-[#aeb3bc]') : ''}
+                                    ${isIOS ? 'rounded-md mx-0.5' : 'rounded-none mx-0.25'}
+                                    ${isActive ? (isIOS ? 'bg-black/20 scale-95' : 'bg-accent-500 text-white') : ''}
                                 `}
+                                style={{
+                                    backgroundColor: isActive ? undefined : (isSpecial ? effectiveKeyColor : effectiveRegularKeyColor),
+                                    color: isIOS ? (isSpecial ? 'rgba(0,0,0,0.7)' : '#000') : (isSpecial ? '#455A64' : '#000')
+                                }}
                             >
                                 {key === 'backspace' ? (
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
                                 ) : key === 'shift' ? (
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4L4 16h16L12 4z" /></svg>
                                 ) : key === 'return' ? (
-                                    <span className="text-sm font-bold">return</span>
+                                    <span className="text-[14px] font-medium leading-none">{isIOS ? 'return' : 'ENTER'}</span>
                                 ) : key === 'space' ? (
-                                    ''
+                                    <div className={`w-8 h-1 rounded-full ${isIOS ? 'bg-black/10' : 'bg-black/5'}`} />
                                 ) : (
                                     key
                                 )}
