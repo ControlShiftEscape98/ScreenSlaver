@@ -483,7 +483,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             case 'error':
                 updates.mode = 'error';
                 updates.currentApp = 'error';
-                updates.statusText = cue.data?.title || 'System Error';
+                updates.statusText = cue.data?.title || cue.data?.subtitle || 'System Error';
                 break;
             case 'home':
                 updates.mode = 'home';
@@ -494,11 +494,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
                 updates.mode = 'lock';
                 updates.currentApp = 'lock';
                 updates.screenLocked = true;
-                break;
-            case 'error':
-                updates.mode = 'error';
-                updates.currentApp = 'error';
-                updates.statusText = cue.data?.subtitle || 'System Failure';
                 break;
             default:
                 updates.mode = cue.type as any;

@@ -560,6 +560,12 @@ export default function ReceiverView() {
                         />
                     </div>
 
+                    {errorMessage && (
+                        <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold text-center">
+                            {errorMessage}
+                        </div>
+                    )}
+
                     <button
                         onClick={async () => {
                             setJoinProgress('connecting');
