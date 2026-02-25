@@ -825,7 +825,7 @@ export default function ControllerDashboard() {
                                     items={cueStack.map(c => c.id)}
                                     strategy={rectSortingStrategy}
                                 >
-                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
                                         {cueStack.map((cue) => {
                                             const CueIcon = CUE_ICONS[cue.type];
                                             return (
