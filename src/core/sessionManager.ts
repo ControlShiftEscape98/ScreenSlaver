@@ -40,6 +40,7 @@ interface SessionState {
 
     // DB Actions
     loadSessionFromDb: (sessionId: string) => Promise<boolean>;
+    resetAllDevices: () => void;
 
     // Realtime Sync
     syncChannel: any | null; // ReturnType<typeof supabase.channel> type is complex to export
@@ -308,6 +309,20 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         });
     },
 
+    resetAllDevices: () => {
+        const store = get();
+        console.log(`[SessionStore] Resetting all ${store.devices.length} devices to Home...`);
+        store.devices.forEach(device => {
+            get().updateDeviceState(device.id, {
+                currentApp: 'home',
+                mode: 'home' as any,
+                screenLocked: false,
+                displayTool: null,
+                identifying: false
+            });
+        });
+    },
+
     updateDeviceState: (deviceId, updates) => {
         // Optimistic update
         set((store) => {
@@ -338,6 +353,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             isFavorite: false,
             isHero: false,
             isOnline: true,
+            isVirtual: true,
             baseState: defaultDeviceState,
             currentState: { ...defaultDeviceState },
         };
@@ -353,7 +369,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         const store = get();
         const device = store.devices.find(d => d.id === deviceId);
 
-        if (device?.isOnline && !device?.isHero) {
+        if (device?.isOnline && !device?.isHero && !device?.isVirtual) {
             get().reportError(`Cannot delete online device: ${device.name}. Disconnect it first or use force-remove.`, 'Security');
             return;
         }
@@ -509,21 +525,26 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     // ─── DB Actions ──────────────────────────────────────────────────────────
 
     loadSessionFromDb: async (sessionId: string) => {
-        const session = await SyncEngine.loadSession(sessionId);
-        if (session) {
-            set({
-                sessionId: session.id,
-                sessionCode: session.code,
-                sessionName: session.name,
-                devices: session.devices,
-                cueStack: session.cueStack,
-                role: 'host',
-                connected: true,
-                syncEnabled: true
-            });
-            get().setupSyncSubscription();
-            return true;
+        try {
+            const session = await SyncEngine.loadSession(sessionId);
+            if (session) {
+                set({
+                    sessionId: session.id,
+                    sessionCode: session.code,
+                    sessionName: session.name,
+                    devices: session.devices,
+                    cueStack: session.cueStack,
+                    role: 'host',
+                    connected: true,
+                    syncEnabled: true
+                });
+                get().setupSyncSubscription();
+                return true;
+            }
+            return false;
+        } catch (error: any) {
+            get().reportError(`Failed to load session: ${error.message}`, 'Supabase');
+            return false;
         }
-        return false;
     }
 }));

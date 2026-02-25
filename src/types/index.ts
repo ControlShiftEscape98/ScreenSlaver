@@ -35,6 +35,8 @@ export interface DeviceState {
     displayTool: QuickToolType | null;        // Quick tool pushed from controller
     displayToolGrid: GridOverlayType | null;  // Grid overlay on top of display tool
     displayToolMarkers: boolean | null;       // Calibration dots on top of solid screens
+    identifying?: boolean;                    // Pulse screen for identification
+    callDuration?: number;                    // Seconds since call accepted
 }
 
 export interface ScreenUnit {
@@ -45,6 +47,7 @@ export interface ScreenUnit {
     isFavorite: boolean;
     isHero: boolean;
     isOnline: boolean;
+    isVirtual?: boolean;      // Manually added devices in dashboard
     baseState: DeviceState;   // Default/initial state
     currentState: DeviceState;// Live state (controller-modified)
 }
@@ -178,7 +181,7 @@ export interface QuickToolConfig {
 
 // ─── App State Types ─────────────────────────────────
 
-export type AppMode = 'home' | 'project-gateway' | 'controller' | 'receiver' | 'quick-tools';
+export type AppMode = 'home' | 'project-gateway' | 'controller' | 'receiver' | 'quick-tools' | 'sandbox';
 
 export type DashboardView = 'devices' | 'cue-grid';  // DJ groove box = cue-grid
 

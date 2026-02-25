@@ -116,6 +116,7 @@ export default function ControllerDashboard() {
         joinSession,
         syncEnabled,
         loadSessionFromDb,
+        resetAllDevices,
     } = useSessionStore();
 
     // DnD Sensors
@@ -463,7 +464,7 @@ export default function ControllerDashboard() {
                     </button>
 
                     <button className="btn-ghost text-xs flex items-center gap-2 bg-surface-200" onClick={() => {
-                        // Reset all logic would go here
+                        resetAllDevices();
                         setCueStack(cueStack.map(c => ({ ...c, fired: false })));
                     }}>
                         <IconReset className="w-4 h-4" />
@@ -773,8 +774,11 @@ export default function ControllerDashboard() {
                                                     <button className={`btn-accent text-xs px-3 py-2 rounded-lg ${identifyingDeviceId === device.id ? 'ring-2 ring-white' : ''}`} onClick={(e) => {
                                                         e.stopPropagation();
                                                         setIdentifyingDeviceId(device.id);
-                                                        updateDeviceState(device.id, { signal: 4 });
-                                                        setTimeout(() => setIdentifyingDeviceId(null), 1500);
+                                                        updateDeviceState(device.id, { identifying: true });
+                                                        setTimeout(() => {
+                                                            setIdentifyingDeviceId(null);
+                                                            updateDeviceState(device.id, { identifying: false });
+                                                        }, 2000);
                                                     }}>Identify</button>
                                                     <button
                                                         className="bg-surface-100 hover:bg-white/10 text-white text-xs px-3 py-2 rounded-lg border border-white/10"
@@ -890,501 +894,501 @@ export default function ControllerDashboard() {
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* ─── Right Panel — Cue Stack (Collapsible) ─ */}
-            <div className="relative flex">
-                {/* Toggle Tab */}
-                <button
-                    onClick={() => setShowCueStack(!showCueStack)}
-                    className="absolute -left-8 top-40 z-40 w-8 h-12 bg-surface-300 border border-white/10 border-r-0 rounded-l-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-surface-200 transition-colors shadow-lg"
-                    title={showCueStack ? 'Hide Cue Stack' : 'Show Cue Stack'}
-                >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform duration-300 ${showCueStack ? 'rotate-0' : 'rotate-180'}`}>
-                        <path d="M5 3l4 4-4 4" />
-                    </svg>
-                </button>
+                {/* ─── Right Panel — Cue Stack (Collapsible) ─ */}
+                <div className="relative flex h-full">
+                    {/* Toggle Tab */}
+                    <button
+                        onClick={() => setShowCueStack(!showCueStack)}
+                        className="absolute -left-8 top-40 z-40 w-8 h-12 bg-surface-300 border border-white/10 border-r-0 rounded-l-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-surface-200 transition-colors shadow-lg"
+                        title={showCueStack ? 'Hide Cue Stack' : 'Show Cue Stack'}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform duration-300 ${showCueStack ? 'rotate-0' : 'rotate-180'}`}>
+                            <path d="M5 3l4 4-4 4" />
+                        </svg>
+                    </button>
 
-                <aside className={`border-l border-white/5 bg-surface-300 flex flex-col shadow-2xl z-30 transition-all duration-300 ease-in-out overflow-hidden ${showCueStack ? 'w-[320px] opacity-100' : 'w-0 opacity-0'}`}>
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-surface-200/50">
-                        <div>
-                            <h2 className="text-sm font-bold text-white tracking-wide">CUE STACK</h2>
-                            <p className="text-[10px] text-neutral-500 font-medium mt-0.5">SEQUENTIAL CONTROL</p>
-                        </div>
-                        <button
-                            onClick={() => setShowAddCue(true)}
-                            className="bg-accent-500 hover:bg-accent-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-glow-accent"
-                        >
-                            + ADD
-                        </button>
-                    </div>
-
-                    {/* Cue List */}
-                    <div className="flex-1 overflow-y-auto px-2 py-3 custom-scrollbar">
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <SortableContext
-                                items={cueStack.map(c => c.id)}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                <div className="space-y-1.5">
-                                    {cueStack.map((cue, index) => {
-                                        const CueIcon = CUE_ICONS[cue.type];
-                                        return (
-                                            <SortableCueItem key={cue.id} cue={cue} view="stack">
-                                                <div className={`group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 ${cue.fired ? 'bg-surface-100 border-transparent opacity-60' : 'bg-surface-200 border-white/5 hover:border-accent-500/30'}`}>
-                                                    {/* Drag Handle */}
-                                                    <span
-                                                        className="text-xs font-mono text-neutral-600 w-4 cursor-grab active:cursor-grabbing hover:text-accent-500 transition-colors"
-                                                        {...(cue as any).dragHandleProps}
-                                                    >
-                                                        {String(index + 1).padStart(2, '0')}
-                                                    </span>
-
-                                                    <div className={`p-2 rounded-lg ${cue.fired ? 'bg-green-500/10 text-green-500' : 'bg-surface-100 text-neutral-300 group-hover:text-white'}`}>
-                                                        <CueIcon className="w-5 h-5" />
-                                                    </div>
-
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`text-sm font-bold truncate ${cue.fired ? 'text-green-500 line-through decoration-green-500/50' : 'text-white'}`}>{cue.name}</p>
-                                                        <p className="text-[10px] text-neutral-500">{CUE_LABELS[cue.type]}</p>
-                                                    </div>
-
-                                                    {/* Actions */}
-                                                    <div className="flex items-center gap-1">
-                                                        {cue.fired ? (
-                                                            <button
-                                                                onClick={() => handleResetCue(cue.id)}
-                                                                className="p-1.5 rounded-lg text-neutral-500 hover:bg-surface-300 hover:text-white transition-colors"
-                                                                title="Reset Cue"
-                                                            >
-                                                                <IconReset className="w-4 h-4" />
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => handleFireCue(cue.id)}
-                                                                className="p-1.5 rounded-lg bg-accent-500/10 text-accent-500 hover:bg-accent-500 hover:text-white transition-colors"
-                                                                title="Fire Cue"
-                                                            >
-                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                                                </svg>
-                                                            </button>
-                                                        )}
-
-                                                        <button
-                                                            onClick={() => handleDeleteCue(cue.id)}
-                                                            className="p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                                                        >
-                                                            <IconTrash className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </SortableCueItem>
-                                        );
-                                    })}
-                                </div>
-                            </SortableContext>
-                        </DndContext>
-                    </div>
-
-                    {/* Master Controls */}
-                    <div className="p-4 bg-surface-200 border-t border-white/5">
-                        <button
-                            onClick={() => {
-                                const next = cueStack.find(c => !c.fired);
-                                if (next) fireCue(next.id);
-                            }}
-                            className="w-full py-4 bg-accent-500 text-white font-black text-xl rounded-xl flex items-center justify-center gap-3 shadow-glow-accent hover:shadow-glow-accent-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={cueStack.every(c => c.fired)}
-                        >
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                            GO
-                        </button>
-                    </div>
-                </aside>
-            </div>
-
-            {/* Edit Device Panel */}
-            {
-                selectedDevice && (
-                    <EditDevicePanel
-                        device={selectedDevice}
-                        onClose={() => setSelectedDeviceId(null)}
-                    />
-                )
-            }
-
-            {/* ─── Add Cue Modal ──────────────────────────── */}
-            {
-                showAddCue && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowAddCue(false)}>
-                        <div className="glass-panel-elevated p-0 w-full max-w-lg overflow-hidden animate-scale-in shadow-2xl" onClick={e => e.stopPropagation()}>
-                            <div className="px-6 py-4 bg-surface-100 border-b border-white/5 flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-white">Create New Cue</h3>
-                                <button onClick={() => setShowAddCue(false)} className="text-neutral-500 hover:text-white">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                </button>
+                    <aside className={`border-l border-white/5 bg-surface-300 flex flex-col shadow-2xl z-30 transition-all duration-300 ease-in-out h-full overflow-hidden ${showCueStack ? 'w-[320px] opacity-100' : 'w-0 opacity-0'}`}>
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-surface-200/50">
+                            <div>
+                                <h2 className="text-sm font-bold text-white tracking-wide">CUE STACK</h2>
+                                <p className="text-[10px] text-neutral-500 font-medium mt-0.5">SEQUENTIAL CONTROL</p>
                             </div>
+                            <button
+                                onClick={() => setShowAddCue(true)}
+                                className="bg-accent-500 hover:bg-accent-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-glow-accent"
+                            >
+                                + ADD
+                            </button>
+                        </div>
 
-                            <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                                {/* Cue Name */}
-                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Cue Name</label>
-                                <input
-                                    type="text"
-                                    value={newCueName}
-                                    onChange={e => setNewCueName(e.target.value)}
-                                    placeholder="e.g., Hero Phone Ring"
-                                    className="input-field mb-6 w-full text-lg font-medium"
-                                    autoFocus
-                                />
+                        {/* Cue List */}
+                        <div className="flex-1 overflow-y-auto px-2 py-3 custom-scrollbar">
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext
+                                    items={cueStack.map(c => c.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-1.5">
+                                        {cueStack.map((cue, index) => {
+                                            const CueIcon = CUE_ICONS[cue.type];
+                                            return (
+                                                <SortableCueItem key={cue.id} cue={cue} view="stack">
+                                                    <div className={`group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 ${cue.fired ? 'bg-surface-100 border-transparent opacity-60' : 'bg-surface-200 border-white/5 hover:border-accent-500/30'}`}>
+                                                        {/* Drag Handle */}
+                                                        <span
+                                                            className="text-xs font-mono text-neutral-600 w-4 cursor-grab active:cursor-grabbing hover:text-accent-500 transition-colors"
+                                                            {...(cue as any).dragHandleProps}
+                                                        >
+                                                            {String(index + 1).padStart(2, '0')}
+                                                        </span>
 
-                                {/* Cue Type Grid */}
-                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Trigger Type</label>
-                                <div className="grid grid-cols-4 gap-2 mb-6">
-                                    {(Object.keys(CUE_ICONS) as CueType[]).map(type => {
-                                        const TypeIcon = CUE_ICONS[type];
-                                        return (
-                                            <button
-                                                key={type}
-                                                onClick={() => setNewCueType(type)}
-                                                className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border transition-all text-center aspect-[5/4]
+                                                        <div className={`p-2 rounded-lg ${cue.fired ? 'bg-green-500/10 text-green-500' : 'bg-surface-100 text-neutral-300 group-hover:text-white'}`}>
+                                                            <CueIcon className="w-5 h-5" />
+                                                        </div>
+
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className={`text-sm font-bold truncate ${cue.fired ? 'text-green-500 line-through decoration-green-500/50' : 'text-white'}`}>{cue.name}</p>
+                                                            <p className="text-[10px] text-neutral-500">{CUE_LABELS[cue.type]}</p>
+                                                        </div>
+
+                                                        {/* Actions */}
+                                                        <div className="flex items-center gap-1">
+                                                            {cue.fired ? (
+                                                                <button
+                                                                    onClick={() => handleResetCue(cue.id)}
+                                                                    className="p-1.5 rounded-lg text-neutral-500 hover:bg-surface-300 hover:text-white transition-colors"
+                                                                    title="Reset Cue"
+                                                                >
+                                                                    <IconReset className="w-4 h-4" />
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleFireCue(cue.id)}
+                                                                    className="p-1.5 rounded-lg bg-accent-500/10 text-accent-500 hover:bg-accent-500 hover:text-white transition-colors"
+                                                                    title="Fire Cue"
+                                                                >
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+
+                                                            <button
+                                                                onClick={() => handleDeleteCue(cue.id)}
+                                                                className="p-1.5 rounded-lg text-neutral-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                                                            >
+                                                                <IconTrash className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </SortableCueItem>
+                                            );
+                                        })}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
+                        </div>
+
+                        {/* Master Controls */}
+                        <div className="p-4 bg-surface-200 border-t border-white/5">
+                            <button
+                                onClick={() => {
+                                    const next = cueStack.find(c => !c.fired);
+                                    if (next) fireCue(next.id);
+                                }}
+                                className="w-full py-4 bg-accent-500 text-white font-black text-xl rounded-xl flex items-center justify-center gap-3 shadow-glow-accent hover:shadow-glow-accent-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={cueStack.every(c => c.fired)}
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                                GO
+                            </button>
+                        </div>
+                    </aside>
+                </div>
+
+                {/* Edit Device Panel */}
+                {
+                    selectedDevice && (
+                        <EditDevicePanel
+                            device={selectedDevice}
+                            onClose={() => setSelectedDeviceId(null)}
+                        />
+                    )
+                }
+
+                {/* ─── Add Cue Modal ──────────────────────────── */}
+                {
+                    showAddCue && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowAddCue(false)}>
+                            <div className="glass-panel-elevated p-0 w-full max-w-lg overflow-hidden animate-scale-in shadow-2xl" onClick={e => e.stopPropagation()}>
+                                <div className="px-6 py-4 bg-surface-100 border-b border-white/5 flex items-center justify-between">
+                                    <h3 className="text-lg font-bold text-white">Create New Cue</h3>
+                                    <button onClick={() => setShowAddCue(false)} className="text-neutral-500 hover:text-white">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+
+                                <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                    {/* Cue Name */}
+                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Cue Name</label>
+                                    <input
+                                        type="text"
+                                        value={newCueName}
+                                        onChange={e => setNewCueName(e.target.value)}
+                                        placeholder="e.g., Hero Phone Ring"
+                                        className="input-field mb-6 w-full text-lg font-medium"
+                                        autoFocus
+                                    />
+
+                                    {/* Cue Type Grid */}
+                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Trigger Type</label>
+                                    <div className="grid grid-cols-4 gap-2 mb-6">
+                                        {(Object.keys(CUE_ICONS) as CueType[]).map(type => {
+                                            const TypeIcon = CUE_ICONS[type];
+                                            return (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => setNewCueType(type)}
+                                                    className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border transition-all text-center aspect-[5/4]
                                             ${newCueType === type
-                                                        ? 'border-accent-500 bg-accent-500/10 text-accent-500 shadow-glow-accent/20'
-                                                        : 'border-white/5 bg-surface-200 text-neutral-400 hover:bg-surface-100 hover:text-white'
-                                                    }`}
-                                            >
-                                                <TypeIcon className="w-5 h-5" />
-                                                <span className="text-[9px] font-bold leading-tight">{CUE_LABELS[type]}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                            ? 'border-accent-500 bg-accent-500/10 text-accent-500 shadow-glow-accent/20'
+                                                            : 'border-white/5 bg-surface-200 text-neutral-400 hover:bg-surface-100 hover:text-white'
+                                                        }`}
+                                                >
+                                                    <TypeIcon className="w-5 h-5" />
+                                                    <span className="text-[9px] font-bold leading-tight">{CUE_LABELS[type]}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
 
-                                {/* Base Customization (For most cues) */}
-                                <div className="mb-6 animate-fade-in space-y-4">
-                                    {/* Conditional Inputs for Phone/Contact */}
-                                    {needsContactInfo && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Contact Name</label>
-                                                <input
-                                                    type="text"
-                                                    value={newCueContactName}
-                                                    onChange={e => setNewCueContactName(e.target.value)}
-                                                    placeholder="e.g. Mom"
-                                                    className="input-field"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Phone Number</label>
-                                                <input
-                                                    type="text"
-                                                    value={newCuePhone}
-                                                    onChange={e => setNewCuePhone(e.target.value)}
-                                                    placeholder="e.g. 555-0123"
-                                                    className="input-field"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Loading Bar Inputs */}
-                                    {newCueType === 'loading' && (
-                                        <div>
-                                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Loading Text</label>
-                                            <input
-                                                type="text"
-                                                value={newCueLoadingText}
-                                                onChange={e => setNewCueLoadingText(e.target.value)}
-                                                placeholder="e.g. Downloading Data..."
-                                                className="input-field w-full"
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Terminal Inputs */}
-                                    {newCueType === 'terminal' && (
-                                        <div>
-                                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Terminal Code / Command</label>
-                                            <textarea
-                                                value={newCueTerminalCode}
-                                                onChange={e => setNewCueTerminalCode(e.target.value)}
-                                                placeholder="e.g. sudo rm -rf /"
-                                                className="input-field w-full font-mono text-xs custom-scrollbar min-h-[80px]"
-                                            />
-                                        </div>
-                                    )}
-
-                                    {newCueType === 'text' && (
-                                        <div className="animate-fade-in-up">
-                                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Message Content</label>
-                                            <textarea
-                                                rows={2}
-                                                value={newCueMessageBody}
-                                                onChange={e => setNewCueMessageBody(e.target.value)}
-                                                placeholder="Type message content here..."
-                                                className="input-field w-full resize-none py-3"
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Subtitle for Notification, Alarm, Error, Video */}
-                                    {['notification', 'error', 'alarm', 'video'].includes(newCueType) && (
-                                        <div>
-                                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Subtitle / Description</label>
-                                            <input
-                                                type="text"
-                                                value={newCueSubtitle}
-                                                onChange={e => setNewCueSubtitle(e.target.value)}
-                                                placeholder="Optional subtitle text..."
-                                                className="input-field w-full"
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Color Picker - Customization (Hacker Terminal style) */}
-                                    {newCueType === 'terminal' && (
-                                        <div>
-                                            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Highlight Color</label>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="color"
-                                                    value={newCueColor}
-                                                    onChange={e => setNewCueColor(e.target.value)}
-                                                    className="w-10 h-10 rounded-lg cursor-pointer border border-white/10 bg-surface-100 p-0.5 shadow-inner"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={newCueColor}
-                                                    onChange={e => setNewCueColor(e.target.value)}
-                                                    className="input-field font-mono text-sm uppercase flex-1 max-w-[120px]"
-                                                    maxLength={7}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Target Selection */}
-                                {/* Destination Selection (Unified) */}
-                                <div className="mb-8">
-                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Target Destination</label>
-                                    <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                                        {/* Broadcast Option */}
-                                        <button
-                                            onClick={() => setSelectedTargets(['all'])}
-                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedTargets.includes('all') ? 'bg-accent-500 border-accent-500 text-white shadow-glow-accent/20' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                    {/* Base Customization (For most cues) */}
+                                    <div className="mb-6 animate-fade-in space-y-4">
+                                        {/* Conditional Inputs for Phone/Contact */}
+                                        {needsContactInfo && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Contact Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newCueContactName}
+                                                        onChange={e => setNewCueContactName(e.target.value)}
+                                                        placeholder="e.g. Mom"
+                                                        className="input-field"
+                                                    />
                                                 </div>
-                                                <span className="text-sm font-bold tracking-wide">Broadcast to All Devices</span>
+                                                <div>
+                                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Phone Number</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newCuePhone}
+                                                        onChange={e => setNewCuePhone(e.target.value)}
+                                                        placeholder="e.g. 555-0123"
+                                                        className="input-field"
+                                                    />
+                                                </div>
                                             </div>
-                                            {selectedTargets.includes('all') && <div className="w-2 h-2 rounded-full bg-white shadow-glow-white" />}
-                                        </button>
+                                        )}
 
-                                        {/* Categories */}
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {[
-                                                { id: 'cat:favorites', label: 'Favorites', icon: IconStar },
-                                                { id: 'cat:phone', label: 'Phones', icon: IconDevicePhone },
-                                                { id: 'cat:tablet', label: 'Tablets', icon: IconDeviceTablet },
-                                                { id: 'cat:monitor', label: 'Displays', icon: IconDeviceMonitor },
-                                                { id: 'cat:laptop', label: 'Laptops', icon: IconDeviceLaptop },
-                                            ].map(cat => {
-                                                const isSelected = selectedTargets.includes(cat.id);
-                                                const Icon = cat.icon;
-                                                return (
-                                                    <button
-                                                        key={cat.id}
-                                                        onClick={() => {
-                                                            const next = selectedTargets.includes('all') ? [cat.id] : (
-                                                                isSelected ? selectedTargets.filter(t => t !== cat.id) : [...selectedTargets, cat.id]
-                                                            );
-                                                            setSelectedTargets(next.length === 0 ? ['all'] : next);
-                                                        }}
-                                                        className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-accent-500/10 border-accent-500 text-accent-500' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
-                                                    >
-                                                        <Icon className="w-4 h-4" />
-                                                        <span className="text-xs font-bold leading-none">{cat.label}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                        {/* Loading Bar Inputs */}
+                                        {newCueType === 'loading' && (
+                                            <div>
+                                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Loading Text</label>
+                                                <input
+                                                    type="text"
+                                                    value={newCueLoadingText}
+                                                    onChange={e => setNewCueLoadingText(e.target.value)}
+                                                    placeholder="e.g. Downloading Data..."
+                                                    className="input-field w-full"
+                                                />
+                                            </div>
+                                        )}
 
-                                        {/* Specific Devices */}
-                                        {sessionDevices.length > 0 && (
-                                            <div className="space-y-1.5 pt-2">
-                                                <h4 className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest px-1">Specific Devices</h4>
-                                                {sessionDevices.map(device => {
-                                                    const isSelected = selectedTargets.includes(device.id);
-                                                    const DeviceIcon = device.type === 'phone' ? IconDevicePhone :
-                                                        device.type === 'tablet' ? IconDeviceTablet :
-                                                            device.type === 'laptop' ? IconDeviceLaptop :
-                                                                device.type === 'monitor' ? IconDeviceMonitor : IconDeviceOther;
+                                        {/* Terminal Inputs */}
+                                        {newCueType === 'terminal' && (
+                                            <div>
+                                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Terminal Code / Command</label>
+                                                <textarea
+                                                    value={newCueTerminalCode}
+                                                    onChange={e => setNewCueTerminalCode(e.target.value)}
+                                                    placeholder="e.g. sudo rm -rf /"
+                                                    className="input-field w-full font-mono text-xs custom-scrollbar min-h-[80px]"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {newCueType === 'text' && (
+                                            <div className="animate-fade-in-up">
+                                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Message Content</label>
+                                                <textarea
+                                                    rows={2}
+                                                    value={newCueMessageBody}
+                                                    onChange={e => setNewCueMessageBody(e.target.value)}
+                                                    placeholder="Type message content here..."
+                                                    className="input-field w-full resize-none py-3"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Subtitle for Notification, Alarm, Error, Video */}
+                                        {['notification', 'error', 'alarm', 'video'].includes(newCueType) && (
+                                            <div>
+                                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Subtitle / Description</label>
+                                                <input
+                                                    type="text"
+                                                    value={newCueSubtitle}
+                                                    onChange={e => setNewCueSubtitle(e.target.value)}
+                                                    placeholder="Optional subtitle text..."
+                                                    className="input-field w-full"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Color Picker - Customization (Hacker Terminal style) */}
+                                        {newCueType === 'terminal' && (
+                                            <div>
+                                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Highlight Color</label>
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="color"
+                                                        value={newCueColor}
+                                                        onChange={e => setNewCueColor(e.target.value)}
+                                                        className="w-10 h-10 rounded-lg cursor-pointer border border-white/10 bg-surface-100 p-0.5 shadow-inner"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={newCueColor}
+                                                        onChange={e => setNewCueColor(e.target.value)}
+                                                        className="input-field font-mono text-sm uppercase flex-1 max-w-[120px]"
+                                                        maxLength={7}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Target Selection */}
+                                    {/* Destination Selection (Unified) */}
+                                    <div className="mb-8">
+                                        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Target Destination</label>
+                                        <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                            {/* Broadcast Option */}
+                                            <button
+                                                onClick={() => setSelectedTargets(['all'])}
+                                                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedTargets.includes('all') ? 'bg-accent-500 border-accent-500 text-white shadow-glow-accent/20' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                                    </div>
+                                                    <span className="text-sm font-bold tracking-wide">Broadcast to All Devices</span>
+                                                </div>
+                                                {selectedTargets.includes('all') && <div className="w-2 h-2 rounded-full bg-white shadow-glow-white" />}
+                                            </button>
+
+                                            {/* Categories */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {[
+                                                    { id: 'cat:favorites', label: 'Favorites', icon: IconStar },
+                                                    { id: 'cat:phone', label: 'Phones', icon: IconDevicePhone },
+                                                    { id: 'cat:tablet', label: 'Tablets', icon: IconDeviceTablet },
+                                                    { id: 'cat:monitor', label: 'Displays', icon: IconDeviceMonitor },
+                                                    { id: 'cat:laptop', label: 'Laptops', icon: IconDeviceLaptop },
+                                                ].map(cat => {
+                                                    const isSelected = selectedTargets.includes(cat.id);
+                                                    const Icon = cat.icon;
                                                     return (
                                                         <button
-                                                            key={device.id}
+                                                            key={cat.id}
                                                             onClick={() => {
-                                                                const next = selectedTargets.includes('all') ? [device.id] : (
-                                                                    isSelected ? selectedTargets.filter(t => t !== device.id) : [...selectedTargets, device.id]
+                                                                const next = selectedTargets.includes('all') ? [cat.id] : (
+                                                                    isSelected ? selectedTargets.filter(t => t !== cat.id) : [...selectedTargets, cat.id]
                                                                 );
                                                                 setSelectedTargets(next.length === 0 ? ['all'] : next);
                                                             }}
-                                                            className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-accent-500/10 border-accent-500 text-accent-500 shadow-glow-accent/5' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
+                                                            className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-accent-500/10 border-accent-500 text-accent-500' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <DeviceIcon className="w-4 h-4" />
-                                                                <span className="text-xs font-bold">{device.name}</span>
-                                                            </div>
-                                                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-accent-500 shadow-glow-accent" />}
+                                                            <Icon className="w-4 h-4" />
+                                                            <span className="text-xs font-bold leading-none">{cat.label}</span>
                                                         </button>
                                                     );
                                                 })}
                                             </div>
-                                        )}
+
+                                            {/* Specific Devices */}
+                                            {sessionDevices.length > 0 && (
+                                                <div className="space-y-1.5 pt-2">
+                                                    <h4 className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest px-1">Specific Devices</h4>
+                                                    {sessionDevices.map(device => {
+                                                        const isSelected = selectedTargets.includes(device.id);
+                                                        const DeviceIcon = device.type === 'phone' ? IconDevicePhone :
+                                                            device.type === 'tablet' ? IconDeviceTablet :
+                                                                device.type === 'laptop' ? IconDeviceLaptop :
+                                                                    device.type === 'monitor' ? IconDeviceMonitor : IconDeviceOther;
+                                                        return (
+                                                            <button
+                                                                key={device.id}
+                                                                onClick={() => {
+                                                                    const next = selectedTargets.includes('all') ? [device.id] : (
+                                                                        isSelected ? selectedTargets.filter(t => t !== device.id) : [...selectedTargets, device.id]
+                                                                    );
+                                                                    setSelectedTargets(next.length === 0 ? ['all'] : next);
+                                                                }}
+                                                                className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-accent-500/10 border-accent-500 text-accent-500 shadow-glow-accent/5' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <DeviceIcon className="w-4 h-4" />
+                                                                    <span className="text-xs font-bold">{device.name}</span>
+                                                                </div>
+                                                                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-accent-500 shadow-glow-accent" />}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="p-6 pt-0">
-                                <button
-                                    onClick={handleAddCue}
-                                    disabled={!newCueName.trim()}
-                                    className={`w-full py-3.5 text-base font-bold rounded-xl transition-all active:scale-[0.98] border
+                                <div className="p-6 pt-0">
+                                    <button
+                                        onClick={handleAddCue}
+                                        disabled={!newCueName.trim()}
+                                        className={`w-full py-3.5 text-base font-bold rounded-xl transition-all active:scale-[0.98] border
                                 ${newCueName.trim()
-                                            ? 'bg-white text-surface-400 border-white hover:bg-neutral-100 shadow-lg'
-                                            : 'bg-surface-200 text-neutral-600 border-white/5 cursor-not-allowed'}`}
-                                >
-                                    Create Cue
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* ─── Add Device Modal ──────────────────────── */}
-            {
-                showAddDevice && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowAddDevice(false)}>
-                        <div className="glass-panel-elevated p-0 w-full max-w-md overflow-hidden animate-scale-in shadow-2xl" onClick={e => e.stopPropagation()}>
-                            <div className="px-6 py-4 bg-surface-100 border-b border-white/5 flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-white">Add Device</h3>
-                                <button onClick={() => setShowAddDevice(false)} className="text-neutral-500 hover:text-white">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                </button>
-                            </div>
-                            <div className="p-6">
-                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Device Name</label>
-                                <input
-                                    type="text"
-                                    value={newDeviceName}
-                                    onChange={e => setNewDeviceName(e.target.value)}
-                                    placeholder="e.g., Hero Phone B"
-                                    className="input-field mb-4 w-full"
-                                    autoFocus
-                                />
-
-                                <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Device Type</label>
-                                <div className="grid grid-cols-3 gap-2 mb-6">
-                                    {(['phone', 'tablet', 'monitor', 'tv', 'laptop', 'other'] as const).map(t => (
-                                        <button
-                                            key={t}
-                                            onClick={() => setNewDeviceType(t)}
-                                            className={`py-2 rounded-lg text-xs font-bold border transition-all ${newDeviceType === t ? 'border-accent-500 bg-accent-500 text-white' : 'border-white/5 bg-surface-200 text-neutral-400 hover:text-white'}`}
-                                        >
-                                            {t.toUpperCase()}
-                                        </button>
-                                    ))}
+                                                ? 'bg-white text-surface-400 border-white hover:bg-neutral-100 shadow-lg'
+                                                : 'bg-surface-200 text-neutral-600 border-white/5 cursor-not-allowed'}`}
+                                    >
+                                        Create Cue
+                                    </button>
                                 </div>
+                            </div>
+                        </div>
+                    )
+                }
 
-                                <button
-                                    onClick={() => {
-                                        if (newDeviceName.trim()) {
-                                            addDevice(newDeviceName.trim(), newDeviceType);
-                                            setNewDeviceName('');
-                                            setShowAddDevice(false);
-                                        }
-                                    }}
-                                    disabled={!newDeviceName.trim()}
-                                    className={`w-full py-3.5 text-base font-bold rounded-xl transition-all active:scale-[0.98] border
+                {/* ─── Add Device Modal ──────────────────────── */}
+                {
+                    showAddDevice && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowAddDevice(false)}>
+                            <div className="glass-panel-elevated p-0 w-full max-w-md overflow-hidden animate-scale-in shadow-2xl" onClick={e => e.stopPropagation()}>
+                                <div className="px-6 py-4 bg-surface-100 border-b border-white/5 flex items-center justify-between">
+                                    <h3 className="text-lg font-bold text-white">Add Device</h3>
+                                    <button onClick={() => setShowAddDevice(false)} className="text-neutral-500 hover:text-white">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                                <div className="p-6">
+                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Device Name</label>
+                                    <input
+                                        type="text"
+                                        value={newDeviceName}
+                                        onChange={e => setNewDeviceName(e.target.value)}
+                                        placeholder="e.g., Hero Phone B"
+                                        className="input-field mb-4 w-full"
+                                        autoFocus
+                                    />
+
+                                    <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Device Type</label>
+                                    <div className="grid grid-cols-3 gap-2 mb-6">
+                                        {(['phone', 'tablet', 'monitor', 'tv', 'laptop', 'other'] as const).map(t => (
+                                            <button
+                                                key={t}
+                                                onClick={() => setNewDeviceType(t)}
+                                                className={`py-2 rounded-lg text-xs font-bold border transition-all ${newDeviceType === t ? 'border-accent-500 bg-accent-500 text-white' : 'border-white/5 bg-surface-200 text-neutral-400 hover:text-white'}`}
+                                            >
+                                                {t.toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            if (newDeviceName.trim()) {
+                                                addDevice(newDeviceName.trim(), newDeviceType);
+                                                setNewDeviceName('');
+                                                setShowAddDevice(false);
+                                            }
+                                        }}
+                                        disabled={!newDeviceName.trim()}
+                                        className={`w-full py-3.5 text-base font-bold rounded-xl transition-all active:scale-[0.98] border
                                     ${newDeviceName.trim()
-                                            ? 'bg-white text-surface-400 border-white hover:bg-neutral-100 shadow-lg'
-                                            : 'bg-surface-200 text-neutral-600 border-white/5 cursor-not-allowed'}`}
-                                >
-                                    Add Device
-                                </button>
+                                                ? 'bg-white text-surface-400 border-white hover:bg-neutral-100 shadow-lg'
+                                                : 'bg-surface-200 text-neutral-600 border-white/5 cursor-not-allowed'}`}
+                                    >
+                                        Add Device
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )
-            }
+                    )
+                }
 
-            {/* ─── Home Confirmation Modal ─────────────────── */}
-            {
-                showHomeConfirm && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
-                        <div className="glass-panel-elevated p-8 max-w-sm w-full text-center border border-white/10 animate-scale-in">
-                            <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4 border border-red-500/30">
-                                <IconCueHome className="w-8 h-8 text-red-500" />
-                            </div>
-                            <h3 className="text-xl font-bold text-white mb-2">Leave Session?</h3>
-                            <p className="text-sm text-neutral-400 mb-8">Unsaved changes will be lost. Do you want to save this workspace before leaving?</p>
+                {/* ─── Home Confirmation Modal ─────────────────── */}
+                {
+                    showHomeConfirm && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
+                            <div className="glass-panel-elevated p-8 max-w-sm w-full text-center border border-white/10 animate-scale-in">
+                                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+                                    <IconCueHome className="w-8 h-8 text-red-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2">Leave Session?</h3>
+                                <p className="text-sm text-neutral-400 mb-8">Unsaved changes will be lost. Do you want to save this workspace before leaving?</p>
 
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    onClick={async () => {
-                                        const store = useSessionStore.getState();
-                                        if (store.sessionId) {
-                                            await SyncEngine.saveSession({
-                                                id: store.sessionId,
-                                                code: store.sessionCode || '000000',
-                                                name: store.sessionName || 'Untitled Workspace',
-                                                hostId: '', // host auth handled by RLS/SyncEngine currently
-                                                devices: store.devices,
-                                                cueStack: store.cueStack,
-                                                presets: [],
-                                                createdAt: new Date().toISOString()
-                                            });
-                                        }
-                                        setShowHomeConfirm(false);
-                                        setMode('home');
-                                    }}
-                                    className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl hover:bg-accent-400 transition-colors shadow-glow-accent"
-                                >
-                                    Save Workspace & Leave
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowHomeConfirm(false);
-                                        setMode('home');
-                                    }}
-                                    className="w-full py-3 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 border border-red-500/30 transition-colors"
-                                >
-                                    Leave Without Saving
-                                </button>
-                                <button
-                                    onClick={() => setShowHomeConfirm(false)}
-                                    className="w-full py-3 bg-transparent text-neutral-400 font-bold rounded-xl hover:text-white transition-colors mt-2"
-                                >
-                                    Cancel
-                                </button>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={async () => {
+                                            const store = useSessionStore.getState();
+                                            if (store.sessionId) {
+                                                await SyncEngine.saveSession({
+                                                    id: store.sessionId,
+                                                    code: store.sessionCode || '000000',
+                                                    name: store.sessionName || 'Untitled Workspace',
+                                                    hostId: '', // host auth handled by RLS/SyncEngine currently
+                                                    devices: store.devices,
+                                                    cueStack: store.cueStack,
+                                                    presets: [],
+                                                    createdAt: new Date().toISOString()
+                                                });
+                                            }
+                                            setShowHomeConfirm(false);
+                                            setMode('home');
+                                        }}
+                                        className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl hover:bg-accent-400 transition-colors shadow-glow-accent"
+                                    >
+                                        Save Workspace & Leave
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowHomeConfirm(false);
+                                            setMode('home');
+                                        }}
+                                        className="w-full py-3 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 border border-red-500/30 transition-colors"
+                                    >
+                                        Leave Without Saving
+                                    </button>
+                                    <button
+                                        onClick={() => setShowHomeConfirm(false)}
+                                        className="w-full py-3 bg-transparent text-neutral-400 font-bold rounded-xl hover:text-white transition-colors mt-2"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )
-            }
+                    )
+                }
 
-            {/* AI Copilot Panel */}
-            {showAiCopilot && <AiCopilotPanel onClose={() => setShowAiCopilot(false)} />}
-        </div >
+                {/* AI Copilot Panel */}
+                {showAiCopilot && <AiCopilotPanel onClose={() => setShowAiCopilot(false)} />}
+            </div>
+        </div>
     );
 }
 

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useModeStore } from '../core/modeManager';
+import { toggleFullscreen, getFullscreenError } from '../utils/fullscreen';
 import type { QuickToolType, GridOverlayType } from '../types';
 import { QuickToolRenderer, CHROMA_GREEN, CHROMA_BLUE, GRAY_18, GRAY_50, PURE_BLACK, PURE_WHITE } from './components/QuickToolRenderer';
 
@@ -29,6 +30,8 @@ export default function QuickTools() {
     const [activeChart, setActiveChart] = useState<ColorChartTab>('color-chart');
     const [isLocked, setIsLocked] = useState(false);
     const [tapCount, setTapCount] = useState(0);
+    const tapRef = useRef(0);
+    const lastTapRef = useRef(0);
 
     // Grid Settings
     const [gridOverlay, setGridOverlay] = useState<GridOverlayType>(null);
@@ -38,27 +41,57 @@ export default function QuickTools() {
 
     // Custom Image state
     const [customImage, setCustomImage] = useState<string | null>(null);
+    const [showFullscreenToast, setShowFullscreenToast] = useState(false);
+    const [fsError, setFsError] = useState<string | null>(null);
+    const [showLockHint, setShowLockHint] = useState(false);
 
-    // --- Screen Lock Logic (Triple Tap) ---
+    // --- Screen Lock Logic (Timing context for UI) ---
     useEffect(() => {
-        if (!isLocked) {
-            setTapCount(0);
-            return;
-        }
-        let timer: ReturnType<typeof setTimeout>;
-        if (tapCount > 0) {
-            timer = setTimeout(() => setTapCount(0), 400);
-        }
-        if (tapCount >= 3) {
-            setIsLocked(false);
-            setTapCount(0);
-        }
+        if (!isLocked) return;
+        const timer = setTimeout(() => setTapCount(0), 1000);
         return () => clearTimeout(timer);
     }, [tapCount, isLocked]);
 
-    const handleScreenClick = () => {
+    // Hint visibility logic
+    useEffect(() => {
         if (isLocked) {
-            setTapCount(prev => prev + 1);
+            setShowLockHint(true);
+            const timer = setTimeout(() => setShowLockHint(false), 3500);
+            return () => clearTimeout(timer);
+        } else {
+            setShowLockHint(false);
+        }
+    }, [isLocked, tapCount]);
+
+
+
+    const handleScreenClick = () => {
+        const now = Date.now();
+        if (now - lastTapRef.current < 1000) {
+            tapRef.current += 1;
+        } else {
+            tapRef.current = 1;
+        }
+        lastTapRef.current = now;
+
+        // Sync state for UI/Unlock feedback
+        setTapCount(tapRef.current);
+
+        if (tapRef.current >= 3) {
+            console.log("[ScreenSlaver] QuickTools Gesture: Triple-tap detected. Requesting Fullscreen.");
+            toggleFullscreen(); // Direct Execution!
+            const error = getFullscreenError();
+            if (error) setFsError(error);
+            else setFsError(null);
+
+            if (isLocked) setIsLocked(false);
+            setShowFullscreenToast(true);
+            setTimeout(() => {
+                setShowFullscreenToast(false);
+                setFsError(null);
+            }, 3000);
+            tapRef.current = 0;
+            setTapCount(0);
         }
     };
 
@@ -161,6 +194,29 @@ export default function QuickTools() {
                             </div>
                         )}
 
+                        {/* Fullscreen Toggle Button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFullscreen();
+                                const error = getFullscreenError();
+                                if (error) setFsError(error);
+                                else setFsError(null);
+
+                                setShowFullscreenToast(true);
+                                setTimeout(() => {
+                                    setShowFullscreenToast(false);
+                                    setFsError(null);
+                                }, 3000);
+                            }}
+                            className="bg-black/50 backdrop-blur-md text-white p-3 rounded-2xl hover:bg-black/80 hover:scale-105 transition-all shadow-lg border border-white/10"
+                            title="Toggle Fullscreen"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                            </svg>
+                        </button>
+
                         {/* Lock Button */}
                         <button
                             onClick={(e) => { e.stopPropagation(); setIsLocked(!isLocked); }}
@@ -174,8 +230,26 @@ export default function QuickTools() {
                     </div>
                 </div>
 
-                {isLocked && (
-                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono bg-black/60 backdrop-blur-md px-4 py-2 rounded-full uppercase tracking-widest border border-white/10 pointer-events-none animate-fade-in">
+                {showFullscreenToast && (
+                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-2xl px-8 py-4 rounded-3xl border border-white/20 shadow-2xl z-[100] animate-float-in flex flex-col items-center gap-2 pointer-events-none">
+                        <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center border border-accent-500/50">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-500">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                            </svg>
+                        </div>
+                        <p className="text-white font-black uppercase tracking-[0.2em] text-[10px]">
+                            {fsError ? 'Takeover Blocked' : 'Takeover Mode Requested'}
+                        </p>
+                        {fsError && (
+                            <p className="text-red-400 text-[8px] font-mono uppercase tracking-widest mt-1 opacity-70">
+                                {fsError}
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {showLockHint && isLocked && (
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono bg-black/60 backdrop-blur-md px-4 py-2 rounded-full uppercase tracking-widest border border-white/10 pointer-events-none animate-fade-in shadow-2xl">
                         Triple-tap to unlock
                     </div>
                 )}
@@ -205,7 +279,18 @@ export default function QuickTools() {
 
     // --- Main Selection Menu ---
     return (
-        <div className="min-h-screen bg-surface-400 flex flex-col w-full">
+        <div className="min-h-screen bg-surface-400 flex flex-col w-full relative" onClick={handleScreenClick}>
+            {/* Global Fullscreen Toast */}
+            {showFullscreenToast && (
+                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-2xl px-8 py-4 rounded-3xl border border-white/20 shadow-2xl z-[1000] animate-float-in flex flex-col items-center gap-2 pointer-events-none">
+                    <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center border border-accent-500/50">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-500">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                        </svg>
+                    </div>
+                    <p className="text-white font-black uppercase tracking-[0.2em] text-[10px]">Takeover Mode Requested</p>
+                </div>
+            )}
             {/* Portrait Warning Overlay for Mobile */}
             <div className="fixed inset-0 z-[100] bg-surface-400 portrait-only flex-col items-center justify-center p-8 text-center animate-fade-in">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent-500 mb-6 animate-pulse">

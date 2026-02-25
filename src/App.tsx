@@ -8,14 +8,21 @@ import QuickTools from './ui/QuickTools';
 
 import ProjectGateway from './ui/ProjectGateway';
 import { CloudDiagnosticOverlay } from './ui/components/CloudDiagnosticOverlay';
+import SimulatorSandbox from './ui/sandbox/SimulatorSandbox';
 
 function App() {
-    const { mode } = useModeStore();
+    const { mode, setMode } = useModeStore();
     const { initialize } = useAuthStore();
 
     useEffect(() => {
         initialize();
-    }, [initialize]);
+
+        // Hidden sandbox access for developers
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sandbox') === 'true') {
+            setMode('sandbox');
+        }
+    }, [initialize, setMode]);
 
     return (
         <div className="h-screen w-screen bg-surface-400 overflow-hidden">
@@ -24,6 +31,7 @@ function App() {
             {mode === 'controller' && <ControllerDashboard />}
             {mode === 'receiver' && <ReceiverView />}
             {mode === 'quick-tools' && <QuickTools />}
+            {mode === 'sandbox' && <SimulatorSandbox />}
             <CloudDiagnosticOverlay />
         </div>
     );

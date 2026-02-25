@@ -181,23 +181,40 @@ export function StatusBar({
     carrier = 'Carrier',
     wifi = true,
     wifiStrength = 3,
-    themeMode = 'dark'
+    themeMode = 'dark',
+    simTime = ''
 }: {
     battery?: number,
     signal?: number,
     carrier?: string,
     wifi?: boolean,
     wifiStrength?: number,
-    themeMode?: 'light' | 'dark'
+    themeMode?: 'light' | 'dark',
+    simTime?: string
 }) {
     const isLight = themeMode === 'light';
     const textColor = isLight ? 'text-black/80' : 'text-white';
     const barBg = isLight ? 'bg-black/20' : 'bg-white/20';
     const barActive = isLight ? 'bg-black/80' : 'bg-white';
 
+    // WiFi Cone SVG
+    const WifiIcon = ({ strength }: { strength: number }) => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ml-1">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0" opacity={strength >= 1 ? 1 : 0.3} />
+            <path d="M1.42 9a16 16 0 0 1 21.16 0" opacity={strength >= 2 ? 1 : 0.3} />
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" opacity={strength >= 0 ? 1 : 0.3} />
+            <line x1="12" y1="20" x2="12.01" y2="20" strokeLinecap="round" />
+        </svg>
+    );
+
     return (
         <div className="absolute top-0 left-0 right-0 px-6 py-2 flex justify-between items-center z-[100]">
             <div className="flex gap-1 items-center">
+                {simTime && (
+                    <span className={`text-[10px] font-bold ${textColor} mr-2`}>
+                        {simTime}
+                    </span>
+                )}
                 <div className="flex gap-[2px] items-end h-3 mr-1">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div
@@ -208,17 +225,7 @@ export function StatusBar({
                     ))}
                 </div>
                 <span className={`text-[10px] font-bold ${textColor}`}>{carrier}</span>
-                {wifi && (
-                    <div className="flex gap-[1px] items-end h-2.5 ml-1.5">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className={`w-[3px] rounded-full ${i < wifiStrength ? barActive : barBg}`}
-                                style={{ height: (i + 1) * 2 + 2 }}
-                            />
-                        ))}
-                    </div>
-                )}
+                {wifi && <div className={textColor}><WifiIcon strength={wifiStrength} /></div>}
             </div>
             <div className="flex items-center gap-1.5">
                 <span className={`text-[10px] font-bold ${textColor}`}>{battery}%</span>
@@ -298,7 +305,8 @@ export function IncomingCallSkin({
     signalStrength,
     carrierName,
     wifiEnabled,
-    wifiStrength
+    wifiStrength,
+    fontScale = 1.0
 }: {
     contactName?: string,
     phoneNumber?: string,
@@ -308,39 +316,87 @@ export function IncomingCallSkin({
     signalStrength?: number,
     carrierName?: string,
     wifiEnabled?: boolean,
-    wifiStrength?: number
+    wifiStrength?: number,
+    fontScale?: number
 }) {
+    const [isAccepted, setIsAccepted] = React.useState(false);
+    const [seconds, setSeconds] = React.useState(0);
+
+    React.useEffect(() => {
+        let interval: any;
+        if (isAccepted) {
+            interval = setInterval(() => {
+                setSeconds(prev => prev + 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isAccepted]);
+
+    const formatTime = (s: number) => {
+        const mins = Math.floor(s / 60);
+        const secs = s % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handleAcceptClick = () => {
+        setIsAccepted(true);
+        // Inform parents/listeners that call was accepted
+        onAccept();
+    };
+
     return (
-        <div className="w-full h-full bg-black/90 backdrop-blur-xl flex flex-col items-center pt-20 pb-20 text-white relative z-50 animate-slide-up">
+        <div
+            className="w-full h-full bg-black/90 backdrop-blur-xl flex flex-col items-center pt-20 pb-20 text-white relative z-50 animate-slide-up"
+            style={{ fontSize: `${fontScale}rem` }}
+        >
             <StatusBar battery={batteryLevel} signal={signalStrength} carrier={carrierName} wifi={wifiEnabled} wifiStrength={wifiStrength} />
             <div className="w-32 h-32 rounded-full bg-neutral-700 mb-6 flex items-center justify-center text-4xl font-bold text-neutral-400">
                 {contactName[0]}
             </div>
             <h2 className="text-3xl font-bold mb-2">{contactName}</h2>
-            <p className="text-neutral-400 mb-auto">{phoneNumber || 'mobile'}</p>
 
-            <div className="w-full px-12 flex justify-between items-center">
-                <button
-                    onClick={onDecline}
-                    className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
-                >
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.7-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.7.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z" /></svg>
-                </button>
-                <button
-                    onClick={onAccept}
-                    className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 animate-pulse"
-                >
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
-                </button>
+            {isAccepted ? (
+                <p className="text-green-500 font-mono text-xl mb-auto animate-pulse">{formatTime(seconds)}</p>
+            ) : (
+                <p className="text-neutral-400 mb-auto">{phoneNumber || 'mobile'}</p>
+            )}
+
+            <div className="w-full px-12 flex justify-center items-center">
+                {isAccepted ? (
+                    <button
+                        onClick={onDecline}
+                        className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
+                    >
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.7-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.7.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z" /></svg>
+                    </button>
+                ) : (
+                    <div className="w-full flex justify-between items-center">
+                        <button
+                            onClick={onDecline}
+                            className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg shadow-red-500/30"
+                        >
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.7-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.7.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z" /></svg>
+                        </button>
+                        <button
+                            onClick={handleAcceptClick}
+                            className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 animate-pulse"
+                        >
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
 // --- Loading Skin ---
-export function LoadingSkin({ statusText = "Loading...", battery, signal, carrier, wifi, wifiStrength }: any) {
+export function LoadingSkin({ statusText = "Loading...", battery, signal, carrier, wifi, wifiStrength, fontScale = 1.0 }: any) {
     return (
-        <div className="w-full h-full bg-black flex flex-col items-center justify-center p-12 text-white relative z-50">
+        <div
+            className="w-full h-full bg-black flex flex-col items-center justify-center p-12 text-white relative z-50"
+            style={{ fontSize: `${fontScale}rem` }}
+        >
             <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} />
             <div className="w-full max-w-xs space-y-4 text-center">
                 <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden relative">
@@ -353,9 +409,12 @@ export function LoadingSkin({ statusText = "Loading...", battery, signal, carrie
 }
 
 // --- Text/Message Skin ---
-export function TextSkin({ contactName, messageBody, battery, signal, carrier, wifi, wifiStrength }: any) {
+export function TextSkin({ contactName, messageBody, battery, signal, carrier, wifi, wifiStrength, fontScale = 1.0 }: any) {
     return (
-        <div className="w-full h-full bg-black flex flex-col p-6 text-white relative z-50 animate-fade-in">
+        <div
+            className="w-full h-full bg-black flex flex-col p-6 text-white relative z-50 animate-fade-in"
+            style={{ fontSize: `${fontScale}rem` }}
+        >
             <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} />
             <div className="mt-12">
                 <div className="flex items-center gap-3 mb-6">
@@ -376,7 +435,7 @@ export function TextSkin({ contactName, messageBody, battery, signal, carrier, w
 }
 
 // --- Terminal Skin ---
-export function TerminalSkin({ terminalCode = "system.init()", battery, signal, carrier, wifi, wifiStrength }: any) {
+export function TerminalSkin({ terminalCode = "system.init()", battery, signal, carrier, wifi, wifiStrength, fontScale = 1.0 }: any) {
     const [lines, setLines] = React.useState<string[]>([]);
 
     React.useEffect(() => {
@@ -394,7 +453,10 @@ export function TerminalSkin({ terminalCode = "system.init()", battery, signal, 
     }, [terminalCode]);
 
     return (
-        <div className="w-full h-full bg-black p-6 font-mono text-xs overflow-hidden flex flex-col text-green-500 relative z-50">
+        <div
+            className="w-full h-full bg-black p-6 font-mono text-xs overflow-hidden flex flex-col text-green-500 relative z-50"
+            style={{ fontSize: `${fontScale}rem` }}
+        >
             <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} themeMode="dark" />
             <div className="mt-12 flex-1 overflow-y-auto scrollbar-hide space-y-1">
                 {lines.map((line, idx) => (
@@ -410,9 +472,12 @@ export function TerminalSkin({ terminalCode = "system.init()", battery, signal, 
 }
 
 // --- Error Skin ---
-export function ErrorSkin({ statusText = "System Failure", battery, signal, carrier, wifi, wifiStrength }: any) {
+export function ErrorSkin({ statusText = "System Failure", battery, signal, carrier, wifi, wifiStrength, fontScale = 1.0 }: any) {
     return (
-        <div className="w-full h-full bg-[#0000AA] flex flex-col p-12 text-white font-mono z-50 relative">
+        <div
+            className="w-full h-full bg-[#0000AA] flex flex-col p-12 text-white font-mono z-50 relative"
+            style={{ fontSize: `${fontScale}rem` }}
+        >
             <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} />
             <div className="mt-20 max-w-md">
                 <div className="bg-white text-[#0000AA] px-4 py-1 mb-6 inline-block font-bold">WINDOWS</div>

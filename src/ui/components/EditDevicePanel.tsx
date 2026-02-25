@@ -48,16 +48,27 @@ export default function EditDevicePanel({ device, onClose }: EditDevicePanelProp
     return (
         <div className="w-[340px] border-l border-white/5 bg-surface-400 flex flex-col shadow-2xl z-40 animate-slide-left">
             <div className="flex items-center justify-between px-4 py-3 border-b border-accent-500/20 bg-surface-200">
-                <div>
+                <div className="flex-1">
                     <h2 className="text-sm font-bold text-white tracking-wide uppercase">Edit Device</h2>
                     <p className="text-[10px] text-accent-500 font-bold">{device.name}</p>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            updateDeviceState(device.id, { identifying: true });
+                            setTimeout(() => updateDeviceState(device.id, { identifying: false }), 2000);
+                        }}
+                        className="px-3 py-1 bg-accent-500/20 text-accent-500 border border-accent-500/30 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-accent-500/30 transition-all"
+                    >
+                        Identify
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar bg-surface-base">

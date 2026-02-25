@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useModeStore } from '../core/modeManager';
 import { useSessionStore } from '../core/sessionManager';
 import type { DeviceType } from '../types';
@@ -20,6 +20,7 @@ import {
     ErrorSkin
 } from './ReceiverComponents';
 import { QuickToolRenderer } from './components/QuickToolRenderer';
+import { toggleFullscreen, getFullscreenError } from '../utils/fullscreen';
 
 const RECEIVER_TIPS = [
     'Tips: Set an Admin PIN to prevent accidental exits.',
@@ -74,17 +75,19 @@ function PinInput({ value, onChange, length = 6 }: { value: string, onChange: (v
     );
 }
 
-type ReceiverMode = 'lock' | 'home' | 'keyboard' | 'call' | 'idle' | 'loading' | 'terminal' | 'messages' | 'error';
+type ReceiverMode = 'lock' | 'home' | 'keyboard' | 'call' | 'idle' | 'loading' | 'terminal' | 'messages' | 'error' | 'text';
 type SkinTheme = 'ios' | 'android';
 
 export default function ReceiverView() {
     const { setMode } = useModeStore();
     const { connected, joinSession, myDeviceState, role } = useSessionStore();
+    const { setDeviceType } = useSessionStore();
 
     // Local state for demo/prop functionality
     const [deviceName, setDeviceName] = useState('');
-    const [deviceType] = useState<DeviceType>('phone');
-    const { setDeviceType } = useSessionStore();
+    const [deviceTypeState, setDeviceTypeState] = useState<DeviceType>('phone');
+    const [identifying, setIdentifying] = useState(false);
+    const prevModeRef = useRef<ReceiverMode | null>(null);
     const [sessionCode, setSessionCode] = useState('');
     const [joinProgress, setJoinProgress] = useState<'idle' | 'connecting' | 'connected'>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -94,13 +97,16 @@ export default function ReceiverView() {
     const [viewMode, setViewMode] = useState<ReceiverMode>('lock');
     const [skinTheme, setSkinTheme] = useState<SkinTheme>('ios');
     const [showDebug, setShowDebug] = useState(false);
+    const [showFullscreenToast, setShowFullscreenToast] = useState(false);
     const [showPinPrompt, setShowPinPrompt] = useState(false);
     const [pinInput, setPinInput] = useState('');
     const [adminPin, setAdminPin] = useState('');
     const [tipIndex, setTipIndex] = useState(0);
     const [showAssistant, setShowAssistant] = useState(true);
     const [typedText, setTypedText] = useState('');
-    const [paramTripleTap, setParamTripleTap] = useState(0);
+    const tapRef = useRef(0);
+    const lastTapRef = useRef(0);
+    const [fsError, setFsError] = useState<string | null>(null);
     const [wallpaper, setWallpaper] = useState('');
     const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
     const [keyboardColor, setKeyboardColor] = useState('#aeb3bc');
@@ -116,32 +122,40 @@ export default function ReceiverView() {
     const [carrier, setCarrier] = useState('Carrier');
     const [wifi, setWifi] = useState(true);
     const [wifiStrength, setWifiStrength] = useState(3);
-    const [simTime, setSimTime] = useState('');
+    const [simulatedTime, setSimulatedTime] = useState('');
 
+    // Auto-detect device type
     useEffect(() => {
-        const timer = setInterval(() => {
-            setTipIndex((i) => (i + 1) % RECEIVER_TIPS.length);
-        }, 6000);
-        return () => clearInterval(timer);
-    }, []);
+        const isTablet = /iPad|Android|webOS/i.test(navigator.userAgent) && (window.innerWidth > 768 || window.innerHeight > 768);
+        setDeviceTypeState(isTablet ? 'tablet' : 'phone');
+        setDeviceType(isTablet ? 'tablet' : 'phone'); // Update store
+    }, [setDeviceType]);
 
-    // Sync from SessionStore
+    // Session Data Sync
     useEffect(() => {
         if (myDeviceState) {
-            setViewMode(myDeviceState.currentApp as ReceiverMode);
+            const nextMode = myDeviceState.currentApp as ReceiverMode;
+
+            // Only update viewMode if it actually changed to prevent re-triggering animations/sounds
+            if (nextMode !== prevModeRef.current) {
+                setViewMode(nextMode);
+                prevModeRef.current = nextMode;
+            }
+
             setSkinTheme(myDeviceState.skin as SkinTheme);
             setTypedText(myDeviceState.typedText || '');
+            setWallpaper(myDeviceState.wallpaper || '');
+            setThemeMode(myDeviceState.themeMode || 'dark');
+            setKeyboardColor(myDeviceState.keyboardColor || (myDeviceState.skin === 'ios' ? '#AEB3BC' : '#1a1a1a'));
+            setIconStyle(myDeviceState.iconStyle || 'classic');
+            setFontScale(myDeviceState.fontScale || 1.0);
             setBattery(myDeviceState.battery);
             setSignal(myDeviceState.signal as any);
             setCarrier(myDeviceState.carrier || 'Carrier');
             setWifi(myDeviceState.wifi !== undefined ? myDeviceState.wifi : true);
             setWifiStrength(myDeviceState.wifiStrength !== undefined ? myDeviceState.wifiStrength : 3);
-            setSimTime(myDeviceState.time || '');
-            setWallpaper(myDeviceState.wallpaper || '');
-            setThemeMode(myDeviceState.themeMode || 'dark');
-            setKeyboardColor(myDeviceState.keyboardColor || (myDeviceState.skin === 'ios' ? '#AEB3BC' : '#1a1a1a'));
-            setIconStyle(myDeviceState.iconStyle as any || 'classic');
-            setFontScale(myDeviceState.fontScale || 1.0);
+            setSimulatedTime(myDeviceState.time || '');
+            setIdentifying(!!myDeviceState.identifying);
         }
     }, [myDeviceState]);
 
@@ -161,26 +175,42 @@ export default function ReceiverView() {
         }
     }, [connected, role, isDemoMode]);
 
-    // Triple tap logic to show debug menu
-    useEffect(() => {
-        let timer: ReturnType<typeof setTimeout>;
-        if (paramTripleTap > 0) {
-            timer = setTimeout(() => setParamTripleTap(0), 400);
-        }
-        if (paramTripleTap >= 3) {
-            setShowDebug(prev => !prev);
-            setParamTripleTap(0);
-        }
-        return () => clearTimeout(timer);
-    }, [paramTripleTap]);
-
+    // --- Triple Tap Gesture Control ---
     const handleScreenTap = () => {
-        setParamTripleTap(prev => prev + 1);
+        const now = Date.now();
+        if (now - lastTapRef.current < 800) {
+            tapRef.current += 1;
+        } else {
+            tapRef.current = 1;
+        }
+        lastTapRef.current = now;
+
+        if (tapRef.current >= 3) {
+            console.log("[ScreenSlaver] Gesture Trigger: Triple-tap detected. Requesting Fullscreen.");
+            toggleFullscreen(); // Direct call in the gesture event thread!
+            const error = getFullscreenError();
+            if (error) setFsError(error);
+            else setFsError(null);
+
+            setShowDebug(prev => !prev);
+            setShowFullscreenToast(true);
+            setTimeout(() => {
+                setShowFullscreenToast(false);
+                setFsError(null);
+            }, 3000);
+            tapRef.current = 0;
+        }
     };
+
+
+
+    // Removed handleScreenTap (merged above)
 
     const handleUnlock = () => {
         setViewMode('home');
     };
+
+    const currentTime = new Date();
 
     // Render the active prop skin
     const renderContent = () => {
@@ -196,15 +226,13 @@ export default function ReceiverView() {
             );
         }
 
-        const time = new Date();
-
         switch (viewMode) {
             case 'lock':
                 return skinTheme === 'ios'
                     ? <IOSLockScreen
-                        deviceType={deviceType}
-                        currentTime={time}
-                        simulatedTime={simTime}
+                        deviceType={deviceTypeState}
+                        currentTime={currentTime}
+                        simulatedTime={simulatedTime}
                         onUnlock={handleUnlock}
                         batteryLevel={battery}
                         signalStrength={signal}
@@ -216,9 +244,9 @@ export default function ReceiverView() {
                         fontScale={fontScale}
                     />
                     : <AndroidLockScreen
-                        deviceType={deviceType}
-                        currentTime={time}
-                        simulatedTime={simTime}
+                        deviceType={deviceTypeState}
+                        currentTime={currentTime}
+                        simulatedTime={simulatedTime}
                         onUnlock={handleUnlock}
                         batteryLevel={battery}
                         signalStrength={signal}
@@ -234,7 +262,7 @@ export default function ReceiverView() {
                 if (activeApp === 'phone') {
                     return (
                         <div className="w-full h-full relative">
-                            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} themeMode={themeMode} />
+                            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} themeMode={themeMode} simTime={simulatedTime} />
                             <DialerApp
                                 theme={skinTheme}
                                 onCall={(num: string) => {
@@ -253,7 +281,7 @@ export default function ReceiverView() {
                 if (activeApp === 'messages') {
                     return (
                         <div className="w-full h-full relative">
-                            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} themeMode={themeMode} />
+                            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} themeMode={themeMode} simTime={simulatedTime} />
                             <MessagesApp theme={skinTheme} themeMode={themeMode} />
                             <button
                                 onClick={() => setActiveApp(null)}
@@ -289,6 +317,7 @@ export default function ReceiverView() {
                         carrierName={carrier}
                         wifiEnabled={wifi}
                         wifiStrength={wifiStrength}
+                        fontScale={myDeviceState?.fontScale}
                     />
                 );
 
@@ -301,6 +330,7 @@ export default function ReceiverView() {
                         carrier={carrier}
                         wifi={wifi}
                         wifiStrength={wifiStrength}
+                        fontScale={myDeviceState?.fontScale}
                     />
                 );
 
@@ -313,10 +343,12 @@ export default function ReceiverView() {
                         carrier={carrier}
                         wifi={wifi}
                         wifiStrength={wifiStrength}
+                        fontScale={myDeviceState?.fontScale}
                     />
                 );
 
             case 'messages':
+            case 'text':
                 return (
                     <TextSkin
                         contactName={myDeviceState?.contactName}
@@ -326,6 +358,7 @@ export default function ReceiverView() {
                         carrier={carrier}
                         wifi={wifi}
                         wifiStrength={wifiStrength}
+                        fontScale={myDeviceState?.fontScale}
                     />
                 );
 
@@ -338,13 +371,14 @@ export default function ReceiverView() {
                         carrier={carrier}
                         wifi={wifi}
                         wifiStrength={wifiStrength}
+                        fontScale={myDeviceState?.fontScale}
                     />
                 );
 
             case 'keyboard':
                 return (
                     <div className="w-full h-full flex flex-col bg-white">
-                        <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} />
+                        <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} simTime={simulatedTime} />
                         {/* Text Area */}
                         <div className="flex-1 p-4 pt-10 bg-surface-100 text-black text-2xl font-mono whitespace-pre-wrap break-words overflow-y-auto">
                             {typedText}<span className="animate-pulse">|</span>
@@ -374,6 +408,31 @@ export default function ReceiverView() {
     if ((connected && role === 'client') || isDemoMode) {
         return (
             <div className="h-full w-full relative overflow-hidden bg-black select-none" onClick={handleScreenTap}>
+                {/* Global Fullscreen Toast */}
+                {showFullscreenToast && (
+                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-2xl px-8 py-4 rounded-3xl border border-white/20 shadow-2xl z-[1000] animate-float-in flex flex-col items-center gap-2 pointer-events-none">
+                        <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center border border-accent-500/50">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-500">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                            </svg>
+                        </div>
+                        <p className="text-white font-black uppercase tracking-[0.2em] text-[10px]">
+                            {fsError ? 'Takeover Blocked' : 'Takeover Mode Requested'}
+                        </p>
+                        {fsError && (
+                            <p className="text-red-400 text-[8px] font-mono uppercase tracking-widest mt-1 opacity-70">
+                                {fsError}
+                            </p>
+                        )}
+                    </div>
+                )}
+                {identifying && (
+                    <div className="absolute inset-0 z-[1000] pointer-events-none bg-accent-500/40 flex items-center justify-center border-4 border-accent-500 animate-[pulse_0.8s_ease-in-out_infinite]">
+                        <div className="bg-accent-500 text-white px-8 py-4 rounded-3xl shadow-glow-accent text-3xl font-black uppercase tracking-[0.2em]">
+                            IDENTITY CHECK
+                        </div>
+                    </div>
+                )}
 
                 {renderContent()}
 
@@ -462,7 +521,25 @@ export default function ReceiverView() {
 
     // Join form
     return (
-        <div className="h-full flex flex-col bg-surface-base relative overflow-hidden">
+        <div className="h-full flex flex-col bg-surface-base relative overflow-hidden" onClick={handleScreenTap}>
+            {/* Global Fullscreen Toast */}
+            {showFullscreenToast && (
+                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 backdrop-blur-2xl px-8 py-4 rounded-3xl border border-white/20 shadow-2xl z-[1000] animate-float-in flex flex-col items-center gap-2 pointer-events-none">
+                    <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center border border-accent-500/50">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-500">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                        </svg>
+                    </div>
+                    <p className="text-white font-black uppercase tracking-[0.2em] text-[10px]">
+                        {fsError ? 'Takeover Blocked' : 'Takeover Mode Requested'}
+                    </p>
+                    {fsError && (
+                        <p className="text-red-400 text-[8px] font-mono uppercase tracking-widest mt-1 opacity-70">
+                            {fsError}
+                        </p>
+                    )}
+                </div>
+            )}
             {/* Assistant Widget - Floating Square */}
             {showAssistant && (
                 <button
@@ -571,7 +648,7 @@ export default function ReceiverView() {
                             setJoinProgress('connecting');
                             setErrorMessage(null);
                             try {
-                                setDeviceType(deviceType);
+                                setDeviceType(deviceTypeState);
                                 await joinSession(sessionCode, deviceName);
                                 setJoinProgress('connected');
                             } catch (error: any) {
