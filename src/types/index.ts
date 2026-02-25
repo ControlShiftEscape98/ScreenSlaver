@@ -16,7 +16,12 @@ export interface DeviceState {
     carrier: string;
     wifi: boolean;
     wifiStrength: 0 | 1 | 2 | 3;
-    currentApp: 'home' | 'lock' | 'call' | 'messages' | 'notification' | 'alarm' | 'idle' | 'custom' | 'keyboard';
+    currentApp: 'home' | 'lock' | 'call' | 'messages' | 'notification' | 'alarm' | 'idle' | 'custom' | 'keyboard' | 'loading' | 'terminal' | 'error';
+    mode?: CueType;           // The current active cue/app mode
+    contactName?: string;     // For calls/texts
+    phoneNumber?: string;     // For calls
+    messageBody?: string;     // For texts
+    statusText?: string;      // For loading bars / error screens
     typedText: string;        // Text for keyboard simulation
     wallpaper: string;        // URL or preset key
     themeMode: 'light' | 'dark';
@@ -205,6 +210,11 @@ export const createDefaultDeviceState = (): DeviceState => ({
     wifi: true,
     wifiStrength: 3,
     currentApp: 'lock',
+    mode: 'lock',
+    contactName: '',
+    phoneNumber: '',
+    messageBody: '',
+    statusText: '',
     typedText: '',
     wallpaper: '',
     themeMode: 'dark',

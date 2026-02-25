@@ -291,6 +291,7 @@ export function AndroidLockScreen({ currentTime, simulatedTime, onUnlock, batter
 // --- Incoming Call ---
 export function IncomingCallSkin({
     contactName = "Unknown",
+    phoneNumber = "",
     onAccept,
     onDecline,
     batteryLevel,
@@ -300,6 +301,7 @@ export function IncomingCallSkin({
     wifiStrength
 }: {
     contactName?: string,
+    phoneNumber?: string,
     onAccept: () => void,
     onDecline: () => void,
     batteryLevel?: number,
@@ -315,7 +317,7 @@ export function IncomingCallSkin({
                 {contactName[0]}
             </div>
             <h2 className="text-3xl font-bold mb-2">{contactName}</h2>
-            <p className="text-neutral-400 mb-auto">mobile</p>
+            <p className="text-neutral-400 mb-auto">{phoneNumber || 'mobile'}</p>
 
             <div className="w-full px-12 flex justify-between items-center">
                 <button
@@ -330,6 +332,94 @@ export function IncomingCallSkin({
                 >
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// --- Loading Skin ---
+export function LoadingSkin({ statusText = "Loading...", battery, signal, carrier, wifi, wifiStrength }: any) {
+    return (
+        <div className="w-full h-full bg-black flex flex-col items-center justify-center p-12 text-white relative z-50">
+            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} />
+            <div className="w-full max-w-xs space-y-4 text-center">
+                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden relative">
+                    <div className="absolute inset-y-0 left-0 bg-accent-500 animate-[loading_2s_ease-in-out_infinite]" style={{ width: '40%' }}></div>
+                </div>
+                <p className="text-xs font-mono tracking-widest text-neutral-400 uppercase">{statusText}</p>
+            </div>
+        </div>
+    );
+}
+
+// --- Text/Message Skin ---
+export function TextSkin({ contactName, messageBody, battery, signal, carrier, wifi, wifiStrength }: any) {
+    return (
+        <div className="w-full h-full bg-black flex flex-col p-6 text-white relative z-50 animate-fade-in">
+            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} />
+            <div className="mt-12">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center font-bold text-neutral-400">
+                        {contactName?.[0] || 'U'}
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg">{contactName}</h3>
+                        <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">iMessage</p>
+                    </div>
+                </div>
+                <div className="bg-neutral-900 border border-white/5 p-4 rounded-2xl rounded-tl-none relative animate-slide-up">
+                    <p className="text-sm leading-relaxed text-neutral-200">{messageBody}</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Terminal Skin ---
+export function TerminalSkin({ terminalCode = "system.init()", battery, signal, carrier, wifi, wifiStrength }: any) {
+    const [lines, setLines] = React.useState<string[]>([]);
+
+    React.useEffect(() => {
+        const fullLines = terminalCode.split('\n');
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i < fullLines.length) {
+                setLines(prev => [...prev, fullLines[i]]);
+                i++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 100);
+        return () => clearInterval(interval);
+    }, [terminalCode]);
+
+    return (
+        <div className="w-full h-full bg-black p-6 font-mono text-xs overflow-hidden flex flex-col text-green-500 relative z-50">
+            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} themeMode="dark" />
+            <div className="mt-12 flex-1 overflow-y-auto scrollbar-hide space-y-1">
+                {lines.map((line, idx) => (
+                    <div key={idx} className="flex gap-2">
+                        <span className="opacity-40">[{idx.toString().padStart(3, '0')}]</span>
+                        <span className="break-all">{line}</span>
+                    </div>
+                ))}
+                <div className="w-2 h-4 bg-green-500 animate-pulse inline-block" />
+            </div>
+        </div>
+    );
+}
+
+// --- Error Skin ---
+export function ErrorSkin({ statusText = "System Failure", battery, signal, carrier, wifi, wifiStrength }: any) {
+    return (
+        <div className="w-full h-full bg-[#0000AA] flex flex-col p-12 text-white font-mono z-50 relative">
+            <StatusBar battery={battery} signal={signal} carrier={carrier} wifi={wifi} wifiStrength={wifiStrength} />
+            <div className="mt-20 max-w-md">
+                <div className="bg-white text-[#0000AA] px-4 py-1 mb-6 inline-block font-bold">WINDOWS</div>
+                <h1 className="text-2xl mb-8">A problem has been detected and ScreenSlaver has been shut down to prevent damage to your device.</h1>
+                <p className="mb-4">ERROR_CODE: {statusText.toUpperCase().replace(/\s/g, '_')}</p>
+                <p className="opacity-80">*** STOP: 0x0000001E (0xC0000005, 0xFDE38AF9, 0x00000001, 0x7E8B0EB8)</p>
+                <div className="mt-20 animate-pulse">Press any key to terminate..._</div>
             </div>
         </div>
     );

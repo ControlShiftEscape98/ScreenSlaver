@@ -7,6 +7,7 @@ import ReceiverView from './ui/ReceiverView';
 import QuickTools from './ui/QuickTools';
 
 import ProjectGateway from './ui/ProjectGateway';
+import { CloudDiagnosticOverlay } from './ui/components/CloudDiagnosticOverlay';
 
 function App() {
     const { mode } = useModeStore();
@@ -23,6 +24,7 @@ function App() {
             {mode === 'controller' && <ControllerDashboard />}
             {mode === 'receiver' && <ReceiverView />}
             {mode === 'quick-tools' && <QuickTools />}
+            <CloudDiagnosticOverlay />
         </div>
     );
 }

@@ -44,6 +44,8 @@ interface SessionState {
     // Realtime Sync
     syncChannel: any | null; // ReturnType<typeof supabase.channel> type is complex to export
     setupSyncSubscription: () => void;
+    lastErrors: { message: string, timestamp: number, type: string }[];
+    reportError: (message: string, type?: string) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -59,6 +61,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     syncEnabled: false,
     myDeviceState: null,
     syncChannel: null,
+    lastErrors: [],
+
+    reportError: (message: string, type: string = 'general') => {
+        console.error(`[SessionStore] ERROR [${type}]: ${message}`);
+        set(state => ({
+            lastErrors: [{ message, type, timestamp: Date.now() }, ...state.lastErrors].slice(0, 5)
+        }));
+    },
 
     setupSyncSubscription: () => {
         const store = get();
@@ -67,6 +77,20 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         }
 
         if (store.sessionId) {
+            // 1. Initial Fetch to recover state
+            SyncEngine.getSessionByCode(store.sessionCode || '').then(session => {
+                if (session) {
+                    set({
+                        devices: session.devices,
+                        cueStack: session.cueStack
+                    });
+                    console.log(`[SessionStore] Recovered state for session ${store.sessionCode}: ${session.devices.length} devices, ${session.cueStack.length} cues.`);
+                }
+            }).catch(err => {
+                get().reportError(`Failed to fetch initial session state: ${err.message}`, 'Supabase');
+            });
+
+            // 2. Start Realtime Subscription
             const channel = SyncEngine.subscribeToSession(store.sessionId, (update) => {
                 if (update.type === 'device') {
                     // Update device from Supabase
@@ -172,6 +196,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         if (success) {
             set({ syncEnabled: true });
             get().setupSyncSubscription();
+        } else {
+            get().reportError('Failed to save session to cloud. Check RLS policies.', 'Supabase');
         }
 
         // Maintain local fallback broadcast comms setup
@@ -196,59 +222,70 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     },
 
     joinSession: async (code, name) => {
-        const session = await SyncEngine.getSessionByCode(code);
+        try {
+            const session = await SyncEngine.getSessionByCode(code);
+            console.log('[SessionStore] Attempting to join session:', code, 'Fetched Session:', session);
 
-        if (!session) {
-            console.error('Failed to join: Invalid code or no session found');
-            return;
+            if (!session) {
+                console.error('[SessionStore] Join failed: Invalid code or session not found');
+                throw new Error('Invalid Session Code');
+            }
+
+            const myId = crypto.randomUUID();
+            const myDeviceType = get().deviceType;
+
+            const newDevice: ScreenUnit = {
+                id: myId,
+                name: name,
+                type: myDeviceType,
+                group: 'No Group',
+                isFavorite: false,
+                isHero: false,
+                isOnline: true,
+                baseState: defaultDeviceState,
+                currentState: defaultDeviceState
+            };
+
+            console.log('[SessionStore] Registering device with Supabase...', newDevice);
+            const success = await SyncEngine.upsertDevice(session.id, newDevice);
+            console.log('[SessionStore] Device registration result:', success);
+
+            if (!success) {
+                console.error('[SessionStore] Failed to register device. Check RLS policies or connectivity.');
+                throw new Error('Cloud Registration Failed');
+            }
+
+            set({
+                sessionId: session.id,
+                sessionCode: session.code,
+                sessionName: session.name,
+                devices: session.devices,
+                cueStack: session.cueStack,
+                role: 'client',
+                connected: true,
+                deviceId: myId,
+                myDeviceState: defaultDeviceState,
+                syncEnabled: true
+            });
+
+            console.log('[SessionStore] Joined session:', session.code, 'as device:', myId);
+
+            get().setupSyncSubscription();
+
+            // CLIENT: Listen for state updates targeting ME from local network
+            commManager.on('device_state_updated', (data: { deviceId: string, state: Partial<DeviceState> }) => {
+                if (data.deviceId === myId) {
+                    set((store) => ({
+                        myDeviceState: store.myDeviceState
+                            ? { ...store.myDeviceState, ...data.state }
+                            : null
+                    }));
+                }
+            });
+        } catch (error: any) {
+            console.error('[SessionStore] Join error:', error);
+            throw error; // Propagate to UI
         }
-
-        const myId = 'client-' + Math.random().toString(36).substring(2, 9);
-        const myDeviceType = get().deviceType;
-
-        const newDevice: ScreenUnit = {
-            id: myId,
-            name: name,
-            type: myDeviceType,
-            group: 'No Group',
-            isFavorite: false,
-            isHero: false,
-            isOnline: true,
-            baseState: defaultDeviceState,
-            currentState: defaultDeviceState
-        };
-
-        await SyncEngine.upsertDevice(session.id, newDevice);
-
-        set({
-            sessionId: session.id,
-            sessionCode: session.code,
-            sessionName: session.name,
-            devices: session.devices,
-            cueStack: session.cueStack,
-            role: 'client',
-            connected: true,
-            deviceId: myId,
-            myDeviceState: defaultDeviceState,
-            syncEnabled: true
-        });
-
-        console.log('[SessionStore] Joined session:', session.code, 'as device:', myId);
-
-        get().setupSyncSubscription();
-
-        // Local fallback broadcast comms setup (optional, but keep for local tab sync if needed)
-        commManager.connect();
-        // commManager.emit('join_session', { code, name, type: myDeviceType }); // REMOVED: Rely on Supabase upsert
-
-        // CLIENT: Listen for state updates targeting ME from local network
-        commManager.on('device_state_updated', (data: { deviceId: string, state: Partial<DeviceState> }) => {
-            set((store) => ({
-                myDeviceState: store.myDeviceState
-                    ? { ...store.myDeviceState, ...data.state }
-                    : null
-            }));
-        });
     },
 
     leaveSession: () => {
@@ -313,8 +350,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     },
 
     removeDevice: (deviceId) => {
-        set((state) => ({ devices: state.devices.filter(d => d.id !== deviceId) }));
         const store = get();
+        const device = store.devices.find(d => d.id === deviceId);
+
+        if (device?.isOnline && !device?.isHero) {
+            get().reportError(`Cannot delete online device: ${device.name}. Disconnect it first or use force-remove.`, 'Security');
+            return;
+        }
+
+        set((state) => ({ devices: state.devices.filter(d => d.id !== deviceId) }));
         if (store.syncEnabled && store.sessionId) {
             SyncEngine.removeDevice(deviceId);
         }
@@ -378,70 +422,91 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         }
     },
 
-    fireCue: async (cueId: string) => {
+    fireCue: async (cueId) => {
         const store = get();
         const cue = store.cueStack.find(c => c.id === cueId);
-        if (!cue) return;
+        if (!cue || !store.sessionId) return;
 
         console.log(`[SessionStore] Firing cue: ${cue.name} (${cue.type})`);
 
-        // 1. Mark as fired
-        set((state) => ({
+        // MARK CUE AS FIRED
+        set(state => ({
             cueStack: state.cueStack.map(c => c.id === cueId ? { ...c, fired: true } : c)
         }));
 
-        if (store.syncEnabled && store.sessionId) {
+        if (store.syncEnabled) {
             SyncEngine.upsertCue(store.sessionId, { ...cue, fired: true });
         }
 
-        // 2. Identify target devices
-        let targets: ScreenUnit[] = [];
-        if (cue.target.mode === 'all') {
-            targets = store.devices;
-        } else if (cue.target.mode === 'device' && cue.target.deviceId) {
-            const d = store.devices.find(dev => dev.id === cue.target.deviceId);
-            if (d) targets = [d];
-        } else if (cue.target.mode === 'multi-device' && cue.target.deviceIds) {
-            targets = store.devices.filter(dev => cue.target.deviceIds?.includes(dev.id));
-        } else if (cue.target.mode === 'group' && cue.target.groupName) {
-            targets = store.devices.filter(dev => dev.group === cue.target.groupName);
+
+        // --- TARGETING LOGIC ---
+        let targetDevices: ScreenUnit[] = [];
+        const { mode, deviceId, deviceIds, groupName } = cue.target;
+
+        if (mode === 'all') {
+            targetDevices = store.devices;
+        } else if (mode === 'device' && deviceId) {
+            const dev = store.devices.find(d => d.id === deviceId);
+            if (dev) targetDevices = [dev];
+        } else if (mode === 'multi-device' && deviceIds) {
+            targetDevices = store.devices.filter(d => deviceIds.includes(d.id));
+        } else if (mode === 'group' && groupName) {
+            targetDevices = store.devices.filter(d => d.group === groupName);
         }
 
-        // 3. Map cue to state updates
+        // --- MAPPING LOGIC ---
         const updates: Partial<DeviceState> = {};
-
         switch (cue.type) {
             case 'incoming':
-            case 'outgoing':
-                updates.currentApp = cue.type === 'incoming' ? 'call' : 'call'; // Both use call skin
-                if (cue.data?.contactName) {
-                    // Update state with contact info if needed
-                    // In a more complex app, currentApp: 'call' would look at a 'callState' object
-                    // For now, we'll assume the Receiver UI can handle basic cue data
-                    // Actually, let's just push the core UI change
-                }
+                updates.mode = 'incoming';
+                updates.currentApp = 'call';
+                updates.contactName = cue.data?.contactName || 'Unknown';
+                updates.phoneNumber = cue.data?.phoneNumber || '';
+                updates.screenLocked = false;
                 break;
             case 'text':
+                updates.mode = 'text';
                 updates.currentApp = 'messages';
-                if (cue.data?.messageBody) updates.typedText = cue.data.messageBody;
+                updates.contactName = cue.data?.contactName || 'Unknown';
+                updates.messageBody = cue.data?.messageBody || '';
                 break;
-            case 'home':
-                updates.currentApp = 'home';
-                break;
-            case 'lock':
-                updates.currentApp = 'lock';
-                break;
-            case 'idle':
-                updates.currentApp = 'idle';
+            case 'loading':
+                updates.mode = 'loading';
+                updates.currentApp = 'loading';
+                updates.statusText = cue.data?.loadingText || 'Loading...';
                 break;
             case 'terminal':
-                // We don't have a terminal app yet, but we can set it to a future app mode
-                // updates.currentApp = 'terminal';
+                updates.mode = 'terminal';
+                updates.currentApp = 'terminal';
+                updates.statusText = cue.data?.terminalCode || '// system initializing...';
                 break;
+            case 'error':
+                updates.mode = 'error';
+                updates.currentApp = 'error';
+                updates.statusText = cue.data?.title || 'System Error';
+                break;
+            case 'home':
+                updates.mode = 'home';
+                updates.currentApp = 'home';
+                updates.screenLocked = false;
+                break;
+            case 'lock':
+                updates.mode = 'lock';
+                updates.currentApp = 'lock';
+                updates.screenLocked = true;
+                break;
+            case 'error':
+                updates.mode = 'error';
+                updates.currentApp = 'error';
+                updates.statusText = cue.data?.subtitle || 'System Failure';
+                break;
+            default:
+                updates.mode = cue.type as any;
+                updates.currentApp = cue.type as any;
         }
 
-        // 4. Update all targeted devices
-        targets.forEach(device => {
+        // --- APPLY UPDATES ---
+        targetDevices.forEach(device => {
             store.updateDeviceState(device.id, updates);
         });
     },

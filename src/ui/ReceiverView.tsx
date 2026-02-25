@@ -6,7 +6,19 @@ import { IconDevicePhone } from './components/Icons';
 
 // Skins
 import VirtualKeyboard from './skins/VirtualKeyboard';
-import { IOSLockScreen, AndroidLockScreen, GenericHomeScreen, IncomingCallSkin, StatusBar, DialerApp, MessagesApp } from './ReceiverComponents';
+import {
+    IOSLockScreen,
+    AndroidLockScreen,
+    GenericHomeScreen,
+    IncomingCallSkin,
+    StatusBar,
+    DialerApp,
+    MessagesApp,
+    LoadingSkin,
+    TextSkin,
+    TerminalSkin,
+    ErrorSkin
+} from './ReceiverComponents';
 import { QuickToolRenderer } from './components/QuickToolRenderer';
 
 const RECEIVER_TIPS = [
@@ -62,7 +74,7 @@ function PinInput({ value, onChange, length = 6 }: { value: string, onChange: (v
     );
 }
 
-type ReceiverMode = 'lock' | 'home' | 'keyboard' | 'call' | 'idle';
+type ReceiverMode = 'lock' | 'home' | 'keyboard' | 'call' | 'idle' | 'loading' | 'terminal' | 'messages' | 'error';
 type SkinTheme = 'ios' | 'android';
 
 export default function ReceiverView() {
@@ -74,8 +86,8 @@ export default function ReceiverView() {
     const [deviceType] = useState<DeviceType>('phone');
     const { setDeviceType } = useSessionStore();
     const [sessionCode, setSessionCode] = useState('');
-    const [isJoining, setIsJoining] = useState(false);
-    const [joinProgress, setJoinProgress] = useState<string[]>([]);
+    const [joinProgress, setJoinProgress] = useState<'idle' | 'connecting' | 'connected'>('idle');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Prop State (Initialized from myDeviceState if available)
     const [isDemoMode, setIsDemoMode] = useState(false); // Bypass session for testing
@@ -132,6 +144,22 @@ export default function ReceiverView() {
             setFontScale(myDeviceState.fontScale || 1.0);
         }
     }, [myDeviceState]);
+
+    // Heartbeat for presence
+    useEffect(() => {
+        if (connected && role === 'client' && !isDemoMode) {
+            const sendHeartbeat = () => {
+                const { updateDeviceState } = useSessionStore.getState();
+                const deviceId = useSessionStore.getState().deviceId;
+                if (deviceId) {
+                    // Just update a small property to trigger 'updated_at' or similar
+                    updateDeviceState(deviceId, { battery: useSessionStore.getState().myDeviceState?.battery || 100 });
+                }
+            };
+            const interval = setInterval(sendHeartbeat, 30000); // 30 seconds
+            return () => clearInterval(interval);
+        }
+    }, [connected, role, isDemoMode]);
 
     // Triple tap logic to show debug menu
     useEffect(() => {
@@ -252,13 +280,63 @@ export default function ReceiverView() {
             case 'call':
                 return (
                     <IncomingCallSkin
-                        contactName="Director"
+                        contactName={myDeviceState?.contactName || 'Unknown'}
+                        phoneNumber={myDeviceState?.phoneNumber || ''}
                         onAccept={() => setViewMode('home')} // Demo logic
                         onDecline={() => setViewMode('home')}
                         batteryLevel={battery}
                         signalStrength={signal}
                         carrierName={carrier}
                         wifiEnabled={wifi}
+                        wifiStrength={wifiStrength}
+                    />
+                );
+
+            case 'loading':
+                return (
+                    <LoadingSkin
+                        statusText={myDeviceState?.statusText}
+                        battery={battery}
+                        signal={signal}
+                        carrier={carrier}
+                        wifi={wifi}
+                        wifiStrength={wifiStrength}
+                    />
+                );
+
+            case 'terminal':
+                return (
+                    <TerminalSkin
+                        terminalCode={myDeviceState?.statusText}
+                        battery={battery}
+                        signal={signal}
+                        carrier={carrier}
+                        wifi={wifi}
+                        wifiStrength={wifiStrength}
+                    />
+                );
+
+            case 'messages':
+                return (
+                    <TextSkin
+                        contactName={myDeviceState?.contactName}
+                        messageBody={myDeviceState?.messageBody}
+                        battery={battery}
+                        signal={signal}
+                        carrier={carrier}
+                        wifi={wifi}
+                        wifiStrength={wifiStrength}
+                    />
+                );
+
+            case 'error':
+                return (
+                    <ErrorSkin
+                        statusText={myDeviceState?.statusText}
+                        battery={battery}
+                        signal={signal}
+                        carrier={carrier}
+                        wifi={wifi}
                         wifiStrength={wifiStrength}
                     />
                 );
@@ -484,36 +562,33 @@ export default function ReceiverView() {
 
                     <button
                         onClick={async () => {
-                            setIsJoining(true);
-                            setJoinProgress(['Connecting to cloud...']);
+                            setJoinProgress('connecting');
+                            setErrorMessage(null);
                             try {
                                 setDeviceType(deviceType);
-                                setJoinProgress(prev => [...prev, `Finding session ${sessionCode}...`]);
                                 await joinSession(sessionCode, deviceName);
-                                // Success will navigate away
-                            } catch (err: any) {
-                                console.error("Join failed", err);
-                                setJoinProgress(prev => [...prev, `Error: ${err.message || 'Unknown error'}`]);
-                            } finally {
-                                setIsJoining(false);
+                                setJoinProgress('connected');
+                            } catch (error: any) {
+                                setJoinProgress('idle');
+                                setErrorMessage(error.message || 'Connection Failed');
+                                console.error('[ReceiverView] Join error:', error);
                             }
                         }}
-                        disabled={!sessionCode || !deviceName || isJoining}
-                        className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl hover:bg-accent-400 disabled:opacity-50 disabled:cursor-not-allowed mb-3 shadow-glow-accent"
+                        disabled={sessionCode.length < 4 || !deviceName || joinProgress === 'connecting'}
+                        className="w-full mt-8 py-4 bg-accent-500 hover:bg-accent-400 disabled:opacity-50 disabled:bg-surface-300 text-white font-black rounded-xl shadow-glow-accent transition-all flex items-center justify-center gap-3 group overflow-hidden relative"
                     >
-                        {isJoining ? 'Connecting...' : 'Join Session'}
+                        {joinProgress === 'connecting' ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                <span className="tracking-widest">CONNECTING...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <span className="tracking-widest uppercase">Join Global Session</span>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                            </>
+                        )}
                     </button>
-
-                    {joinProgress.length > 0 && (
-                        <div className="mt-4 p-3 bg-black/40 border border-white/5 rounded-lg font-mono text-[10px] space-y-1">
-                            {joinProgress.map((step, i) => (
-                                <div key={i} className="flex gap-2">
-                                    <span className="text-accent-500">›</span>
-                                    <span className={step.startsWith('Error') ? 'text-red-400' : 'text-neutral-400'}>{step}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     <div className="relative flex items-center py-4 mb-2">
                         <div className="flex-grow border-t border-white/10"></div>

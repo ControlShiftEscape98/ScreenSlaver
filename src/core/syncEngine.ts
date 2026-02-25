@@ -152,8 +152,8 @@ export const SyncEngine = {
 
     // ─── Devices ─────────────────────────────────────────────────────
 
-    async upsertDevice(sessionId: string, device: ScreenUnit) {
-        if (!device.id || !sessionId) return;
+    async upsertDevice(sessionId: string, device: ScreenUnit): Promise<boolean> {
+        if (!device.id || !sessionId) return false;
         const { error } = await supabase
             .from('devices')
             .upsert({
@@ -169,13 +169,17 @@ export const SyncEngine = {
                 current_state: device.currentState
             });
 
-        if (error) console.error('[SyncEngine] Upsert device error:', error);
+        if (error) {
+            console.error('[SyncEngine] Upsert device error:', error);
+            return false;
+        }
+        return true;
     },
 
     // ─── Cues ────────────────────────────────────────────────────────
 
-    async upsertCue(sessionId: string, cue: Cue) {
-        if (!cue.id || !sessionId) return;
+    async upsertCue(sessionId: string, cue: Cue): Promise<boolean> {
+        if (!cue.id || !sessionId) return false;
         const { error } = await supabase
             .from('cues')
             .upsert({
@@ -192,7 +196,11 @@ export const SyncEngine = {
                 fired: cue.fired
             });
 
-        if (error) console.error('[SyncEngine] Upsert cue error:', error);
+        if (error) {
+            console.error('[SyncEngine] Upsert cue error:', error);
+            return false;
+        }
+        return true;
     },
 
     async removeCue(cueId: string) {
@@ -245,7 +253,9 @@ export const SyncEngine = {
             .on('broadcast', { event: 'mode_shift' }, ({ payload }) => {
                 onUpdate({ type: 'mode_shift', payload });
             })
-            .subscribe();
+            .subscribe((status) => {
+                console.log(`[SyncEngine] Subscription status for session ${sessionId}:`, status);
+            });
     },
 
     unsubscribe(channel: ReturnType<typeof supabase.channel>) {
