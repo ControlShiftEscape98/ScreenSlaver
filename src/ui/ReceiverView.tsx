@@ -124,11 +124,30 @@ export default function ReceiverView() {
     const [wifiStrength, setWifiStrength] = useState(3);
     const [simulatedTime, setSimulatedTime] = useState('');
 
-    // Auto-detect device type
+    // Auto-detect device type (Universal Simulator Engine)
     useEffect(() => {
-        const isTablet = /iPad|Android|webOS/i.test(navigator.userAgent) && (window.innerWidth > 768 || window.innerHeight > 768);
-        setDeviceTypeState(isTablet ? 'tablet' : 'phone');
-        setDeviceType(isTablet ? 'tablet' : 'phone'); // Update store
+        const ua = navigator.userAgent;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const maxDim = Math.max(width, height);
+
+        let detected: DeviceType = 'phone';
+
+        if (/iPad|Android|webOS/i.test(ua)) {
+            if (maxDim > 1024) detected = 'tablet';
+            else detected = 'phone';
+        } else if (/Macintosh|Windows|Linux/i.test(ua)) {
+            if (width > 2000) detected = 'monitor';
+            else detected = 'laptop';
+        }
+
+        setDeviceTypeState(detected);
+        setDeviceType(detected); // Update store
+
+        // Apply adaptive default font scale for large displays
+        if (detected === 'laptop' || detected === 'monitor') {
+            setFontScale(1.5);
+        }
     }, [setDeviceType]);
 
     // Session Data Sync
@@ -178,7 +197,7 @@ export default function ReceiverView() {
     // --- Triple Tap Gesture Control ---
     const handleScreenTap = () => {
         const now = Date.now();
-        if (now - lastTapRef.current < 800) {
+        if (now - lastTapRef.current < 1000) {
             tapRef.current += 1;
         } else {
             tapRef.current = 1;
