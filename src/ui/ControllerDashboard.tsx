@@ -285,6 +285,8 @@ export default function ControllerDashboard() {
     const [newCueTerminalCode, setNewCueTerminalCode] = useState('sudo rm -rf /');
     const [newCueMessageBody, setNewCueMessageBody] = useState('');
     const [gridEditMode, setGridEditMode] = useState(false);
+    const [showDeviceSelector, setShowDeviceSelector] = useState(false);
+    const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
 
     const handleAddCue = () => {
         if (!newCueName.trim()) return;
@@ -330,6 +332,8 @@ export default function ControllerDashboard() {
         setNewCueTerminalCode('sudo rm -rf /');
         setNewCueMessageBody('');
         setSelectedTargets(['all']);
+        setShowDeviceSelector(false);
+        setDeviceSearchQuery('');
         setShowAddCue(false);
     };
 
@@ -1222,35 +1226,103 @@ export default function ControllerDashboard() {
                                                 })}
                                             </div>
 
-                                            {/* Specific Devices */}
+                                            {/* Specific Devices Searchable Dropdown */}
                                             {sessionDevices.length > 0 && (
-                                                <div className="space-y-1.5 pt-2">
-                                                    <h4 className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest px-1">Specific Devices</h4>
-                                                    {sessionDevices.map(device => {
-                                                        const isSelected = selectedTargets.includes(device.id);
-                                                        const DeviceIcon = device.type === 'phone' ? IconDevicePhone :
-                                                            device.type === 'tablet' ? IconDeviceTablet :
-                                                                device.type === 'laptop' ? IconDeviceLaptop :
-                                                                    device.type === 'monitor' ? IconDeviceMonitor : IconDeviceOther;
-                                                        return (
-                                                            <button
-                                                                key={device.id}
-                                                                onClick={() => {
-                                                                    const next = selectedTargets.includes('all') ? [device.id] : (
-                                                                        isSelected ? selectedTargets.filter(t => t !== device.id) : [...selectedTargets, device.id]
-                                                                    );
-                                                                    setSelectedTargets(next.length === 0 ? ['all'] : next);
-                                                                }}
-                                                                className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-accent-500/10 border-accent-500 text-accent-500 shadow-glow-accent/5' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
-                                                            >
-                                                                <div className="flex items-center gap-3">
-                                                                    <DeviceIcon className="w-4 h-4" />
-                                                                    <span className="text-xs font-bold">{device.name}</span>
-                                                                </div>
-                                                                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-accent-500 shadow-glow-accent" />}
-                                                            </button>
-                                                        );
-                                                    })}
+                                                <div className="pt-2">
+                                                    <button
+                                                        onClick={() => setShowDeviceSelector(!showDeviceSelector)}
+                                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${showDeviceSelector || selectedTargets.some(t => !t.startsWith('cat:') && t !== 'all') ? 'bg-surface-100 border-accent-500/50 text-white' : 'bg-surface-200 border-white/5 text-neutral-400 hover:bg-surface-100'}`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-lg bg-accent-500/10 flex items-center justify-center text-accent-500">
+                                                                <IconDevicePhone className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <span className="text-sm font-bold block">Select Specific Devices</span>
+                                                                {selectedTargets.filter(t => !t.startsWith('cat:') && t !== 'all').length > 0 && (
+                                                                    <span className="text-[10px] text-accent-500 font-mono mt-0.5">
+                                                                        {selectedTargets.filter(t => !t.startsWith('cat:') && t !== 'all').length} TARGETED
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <svg
+                                                            width="16"
+                                                            height="16"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2.5"
+                                                            className={`transition-transform duration-200 ${showDeviceSelector ? 'rotate-180' : ''}`}
+                                                        >
+                                                            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </svg>
+                                                    </button>
+
+                                                    {showDeviceSelector && (
+                                                        <div className="mt-2 bg-surface-100 border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-scale-in">
+                                                            {/* Dropdown Search */}
+                                                            <div className="p-2 border-b border-white/5 relative">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Search devices..."
+                                                                    value={deviceSearchQuery}
+                                                                    onChange={e => setDeviceSearchQuery(e.target.value)}
+                                                                    className="w-full bg-surface-base border border-white/5 rounded-lg py-1.5 px-3 pl-8 text-[11px] text-white outline-none focus:border-accent-500/50 transition-all"
+                                                                    autoFocus
+                                                                />
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="absolute left-4.5 top-1/2 -translate-y-1/2 text-neutral-500">
+                                                                    <circle cx="11" cy="11" r="8"></circle>
+                                                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                                                </svg>
+                                                            </div>
+
+                                                            {/* Device Options */}
+                                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                                {sessionDevices
+                                                                    .filter(d => d.name.toLowerCase().includes(deviceSearchQuery.toLowerCase()))
+                                                                    .map(device => {
+                                                                        const isSelected = selectedTargets.includes(device.id);
+                                                                        const DeviceIcon = device.type === 'phone' ? IconDevicePhone :
+                                                                            device.type === 'tablet' ? IconDeviceTablet :
+                                                                                device.type === 'laptop' ? IconDeviceLaptop :
+                                                                                    device.type === 'monitor' ? IconDeviceMonitor : IconDeviceOther;
+                                                                        return (
+                                                                            <button
+                                                                                key={device.id}
+                                                                                onClick={() => {
+                                                                                    const next = selectedTargets.includes('all') ? [device.id] : (
+                                                                                        isSelected ? selectedTargets.filter(t => t !== device.id) : [...selectedTargets, device.id]
+                                                                                    );
+                                                                                    setSelectedTargets(next.length === 0 ? ['all'] : next);
+                                                                                }}
+                                                                                className={`w-full flex items-center justify-between p-2.5 hover:bg-white/5 transition-all group ${isSelected ? 'bg-accent-500/10' : ''}`}
+                                                                            >
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <div className={`p-1.5 rounded-lg transition-colors ${isSelected ? 'bg-accent-500 text-white' : 'bg-surface-200 text-neutral-500 group-hover:text-white'}`}>
+                                                                                        <DeviceIcon className="w-3.5 h-3.5" />
+                                                                                    </div>
+                                                                                    <div className="text-left">
+                                                                                        <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-neutral-300'}`}>{device.name}</p>
+                                                                                        <p className="text-[10px] text-neutral-500 font-mono mt-0.5">{device.type.toUpperCase()}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'bg-accent-500 border-accent-500' : 'border-white/10 group-hover:border-white/30'}`}>
+                                                                                    {isSelected && (
+                                                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                                                                    )}
+                                                                                </div>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                {sessionDevices.filter(d => d.name.toLowerCase().includes(deviceSearchQuery.toLowerCase())).length === 0 && (
+                                                                    <div className="p-4 text-center">
+                                                                        <p className="text-[11px] text-neutral-500 italic">No matching devices found</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
